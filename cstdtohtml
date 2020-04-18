@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+
+import html
+import os.path
+import re
+import subprocess
+import sys
+
+# Various HTML tags
+TAG = ["html", "body", "p", "ul", "ol", "li", "pre"]
+# Modes
+HTML = TAG.index("html")
+BODY = TAG.index("body")
+P = TAG.index("p")
+UL = TAG.index("ul")
+OL = TAG.index("ol")
+LI = TAG.index("li")
+PRE = TAG.index("pre")
+# These modes cannot contain text, you must get out of them before writing
+NOTEXT = {UL, OL}
+# These modes cannot contain text but you should not get out of them either, you
+# should open a P
+NOOUT = {HTML, BODY}
+
+def groupwords(string: str):
+    '''groupwords(string: str): Split a string into groups of words.
+
+Return a list of all the substrings of s with no more than one space between
+non-spaces.
+'''
+    # Split into groups of words, remove empty groups, remove leading spaces
+    return list(map(str.lstrip, filter(None, string.split("  "))))
+
+def main(argv):
+    usagestr = ("Usage: " + os.path.basename(argv[0]) +
+                " <C Standard Draft PDF file> [output HTML file]")
+    if not 1 < len(argv) < 4:
+        print(usagestr, file=sys.stderr)
+        sys.exit(1)
+    if argv[1] in ["-h", "-help", "--help"]:
+        print(usagestr)
+        sys.exit(0)
+    inputfile = argv[1]
+    if len(argv) == 3:
+        outputfile = argv[2]
+    else:
+        outputfile = os.path.splitext(inputfile)[0] + ".html"
+
+    process = subprocess.run(["pdftotext", "-layout", inputfile, "-"],
+                             capture_output=True, text=True)
+    if process.returncode != 0:
+        print(process.stderr, end='', file=sys.stderr)
+        sys.exit(process.returncode)
+
+    rawlines = process.stdout.split('\n') # keep \f to detect page breaks
+    lines = list()
+    refsre = re.compile(r"\((\d+(\.\d+)+)\)")
+    def refrepl(match):
+        key = match.group(1)
+        return f'(<a href="#{key}">{key}</a>)'
+
+    # Preprocessing of text file
+    for rawline in rawlines:
+        # criteria of exclusion:
+        # * successive empty lines
+        # * footer before page break
+        # * header after page break
+        if rawline:
+            if rawline[0] == '\f':
+                # page break
+                lines.pop() # remove the previous line
+                continue # exclude this line
+        else:
+            if not lines[-1]:
+                continue # exclude this second empty line
+        escapedline = html.escape(rawline)
+        refedline = refsre.sub(refrepl, escapedline)
+        lines.append(refedline)
+
+    with open(".cstdtohtml_raw", 'w') as f:
+        f.write('\0\n\0'.join(lines))
+
+    headerline = lines[0]
+    header = groupwords(headerline)
+    _standard, _ballot, isostd = header
+
+    titleheaderline = lines[2]
+    titleheader = groupwords(titleheaderline)
+
+    with open(outputfile, "wt") as out:
+        out.write(
+f"""<!DOCTYPE html>
+<html lang="en">
+<!-- This document was generated automatically by cstdtohtml -->
+<head>
+    <meta charset="utf-8">
+    <title>{isostd}</title>
+</head>
+<body>
+""")
+        out.write("<header>")
+        for words in titleheader:
+            out.write(f"<div>{words}</div>")
+        out.write("</header>\n")
+
+        modestack = [HTML, BODY]
+        def newmode(mode):
+            modestack.append(mode)
+            out.write(f"<{TAG[mode]}>\n")
+        def endmode():
+            mode = modestack.pop()
+            out.write(f"</{TAG[mode]}>\n")
+        def backtobody():
+            while 2 < len(modestack):
+                endmode()
+
+        i = 3
+        in_abstract = False
+        in_toc = False
+        toclevel = None
+        parkey = None # prefix for the paragraph anchors
+        def inserttitle(level, key, title):
+            nonlocal parkey
+            backtobody()
+            out.write(f'<h{level} id="{key}">{title}</h{level}>\n')
+            parkey = key
+        def parsenumberedtitle(line):
+            split = line.split(maxsplit=1)
+            if len(split) == 1:
+                # numbers only
+                key = title = split[0]
+            else:
+                # numbers + title
+                key = split[0]
+                title = line.lstrip()
+                # remove trailing dot
+                if key[-1] == '.':
+                    key = key[:-1]
+            level = key.count('.') + 1
+            inserttitle(level, key, title)
+        while i < len(lines):
+            mode = modestack[-1]
+            if mode in NOOUT:
+                mode = None # we do not need to exit body to change mode
+
+            line = lines[i]
+            if line:
+                groups = groupwords(line)
+                if groups == titleheader:
+                    # there's a second title header at the beginning of
+                    # contents, ignore it
+                    i += 3
+                    continue
+                if in_abstract:
+                    out.write("<br>\n")
+                    out.write(line)
+                elif line == "Contents":
+                    if mode is not None:
+                        print(i, mode, line)
+                        sys.exit(1)
+                    in_toc = True
+                    out.write(f"<h2>{line}</h2>\n")
+                    newmode(UL)
+                elif in_toc:
+                    if line[0].isalpha():
+                        # title SP+ page
+                        while 3 < len(modestack):
+                            endmode() # back to bottom UL
+                        title = groups[0]
+                        out.write(f'<li><a href="#{title}">{title}</a></li>\n')
+                        toclevel = 1
+                    elif line[0].isdigit():
+                        # number SP+ title SP+ page
+                        while 3 < len(modestack):
+                            endmode() # back to bottom UL
+                        key, title, _ = groupwords(line)
+                        # sanity check
+                        try:
+                            int(key)
+                        except ValueError:
+                            print(i, line)
+                            sys.exit(1)
+                        newmode(LI)
+                        out.write(f'{key} <a href="#{key}">{title}</a>\n')
+                        toclevel = 1
+                    elif line[0] == ' ':
+                        # SP+ number(.number)+ SP* title (. )+ SP* page
+                        # since we ignore the page we split on spaces then dots
+                        groups = line.lstrip().split(maxsplit=1)
+                        if len(groups) == 1:
+                            # oops, not TOC anymore
+                            in_toc = False
+                            backtobody()
+                            continue # try again
+                        key_str = groups[0]
+                        title = groups[1].split(' .', maxsplit=1)[0]
+                        # no int check because of annexes
+                        key_list = key_str.split('.')
+                        chaplevel = len(key_list)
+                        if toclevel < chaplevel:
+                            # we are deeper
+                            newmode(UL)
+                            newmode(LI)
+                            out.write('{0} <a href="#{0}">{1}</a>\n'
+                                      .format(key_str, title))
+                            toclevel = chaplevel
+                        elif toclevel == chaplevel:
+                            # sibling item
+                            endmode() # LI
+                            newmode(LI)
+                            out.write('{0} <a href="#{0}">{1}</a>\n'
+                                      .format(key_str, title))
+                        else: # len(chapter) < toclevel
+                            # we are shallower, we must go up some levels!
+                            while chaplevel < toclevel:
+                                endmode() # LI
+                                endmode() # UL
+                                toclevel -= 1
+                            # we are back to sibling item
+                            endmode() # LI
+                            newmode(LI)
+                            out.write('{0} <a href="#{0}">{1}</a>\n'
+                                      .format(key_str, title))
+                    else:
+                        print(i, line)
+                        sys.exit(1)
+                elif line[0] == ' ':
+                    # indented line, but what could it be?
+                    split = line.split(maxsplit=1)
+                    if groups[0][0] == '—':
+                        # list element
+                        if mode == LI:
+                            # already in a list, must close previous item
+                            endmode()
+                        elif mode != UL:
+                            # not in a list, must work back to top level
+                            backtobody()
+                            newmode(UL)
+                        newmode(LI)
+                        # skip spaces and dash
+                        out.write(line.lstrip()[2:] + '\n')
+                    elif groups[0] == "Abstract":
+                        in_abstract = True
+                        modestack.append(P)
+                        out.write('<p id="abstract">\n')
+                        out.write(line)
+                    elif line[:14].isspace():
+                        # code
+                        if mode != PRE:
+                            backtobody()
+                            newmode(PRE)
+                        out.write(line[14:] + '\n')
+                    elif (line[:6].isspace()
+                            and split[0][:-1].isdigit()
+                            and split[0][-1] == ')'):
+                        # footnote
+                        # I have no way of linking to the footnote
+                        backtobody()
+                        modestack.append(P)
+                        out.write('<p class="footnote">\n')
+                        out.write(line.lstrip())
+                        # No idea why, but there's an empty line in the
+                        # middle of the footnote.
+                        i += 1
+                    elif mode is not None and mode not in NOTEXT:
+                        # continuation of a multiline element
+                        out.write("<br>\n" + line.lstrip() + '\n')
+                    elif len(groups) == 1:
+                        group = groups[0]
+                        if group[0].isdigit():
+                            if line[:5].isspace():
+                                # ordered list element
+                                pos_str, elem = line.split(maxsplit=1)
+                                # sanity check
+                                try:
+                                    pos = int(pos_str[:-1])
+                                except:
+                                    print(i, line)
+                                    sys.exit(1)
+                                if mode == LI:
+                                    endmode()
+                                elif mode != OL:
+                                    backtobody()
+                                    if pos == 1:
+                                        newmode(OL)
+                                    else:
+                                        modestack.append(OL)
+                                        out.write(f'<ol start={pos}>\n')
+                                newmode(LI)
+                                # skip spaces and dash
+                                out.write(elem + '\n')
+                            else:
+                                # numbered title
+                                parsenumberedtitle(group)
+                        elif group[0].isupper():
+                            # title
+                            inserttitle(1, group, group)
+                        else:
+                            # probably a paragraph lost to a page break or code
+                            newmode(P)
+                            out.write(line.lstrip() + '\n')
+                    elif len(groups) == 2 and groups[0][0].isdigit():
+                        # numbered title
+                        parsenumberedtitle(line)
+                    else:
+                        print(i, groups)
+                        print(titleheader)
+                        sys.exit(1)
+                else:
+                    while modestack[-1] in NOTEXT:
+                        endmode()
+                    if line[0].isdigit():
+                        # numbered paragraph
+                        if mode == P:
+                            endmode()
+                        parnum, line = line.split(maxsplit=1)
+                        # sanity check
+                        try:
+                            int(parnum)
+                        except:
+                            print(i, line)
+                            sys.exit(1)
+                        modestack.append(P)
+                        if parkey is None:
+                            print(i, line)
+                            sys.exit(1)
+                        key = f"{parkey}.{parnum}" 
+                        out.write(f'<p id="{key}">\n')
+                        out.write(f'<a href="#{key}">{parnum}</a> ')
+                    else:
+                        if modestack[-1] in NOOUT:
+                            newmode(P)
+                    out.write(line + '\n')
+            elif in_abstract:
+                out.write('\n')
+                endmode()
+                in_abstract = False
+            elif mode is not None and not in_toc:
+                endmode()
+            i += 1
+
+        while modestack:
+            endmode()
+
+    print(f"Sucessfully written {outputfile}")
+
+if __name__ == '__main__':
+    main(sys.argv)
