@@ -262,36 +262,30 @@ f"""<!DOCTYPE html>
                         # No idea why, but there's an empty line in the
                         # middle of the footnote.
                         i += 1
+                    elif split[0][:-1].isdigit() and split[0][-1] == '.':
+                        # ordered list element
+                        pos = split[0][:-1]
+                        elem = split[1]
+                        if mode == LI:
+                            endmode()
+                        if modestack[-1] != OL:
+                            backtobody()
+                            if pos == 1:
+                                newmode(OL)
+                            else:
+                                modestack.append(OL)
+                                out.write(f'<ol start={pos}>\n')
+                        newmode(LI)
+                        # skip spaces and dash
+                        out.write(elem + '\n')
                     elif mode is not None and mode not in NOTEXT:
                         # continuation of a multiline element
                         out.write("<br>\n" + line.lstrip() + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
                         if group[0].isdigit():
-                            if line[:5].isspace():
-                                # ordered list element
-                                pos_str, elem = line.split(maxsplit=1)
-                                # sanity check
-                                try:
-                                    pos = int(pos_str[:-1])
-                                except:
-                                    print(i, line)
-                                    sys.exit(1)
-                                if mode == LI:
-                                    endmode()
-                                elif mode != OL:
-                                    backtobody()
-                                    if pos == 1:
-                                        newmode(OL)
-                                    else:
-                                        modestack.append(OL)
-                                        out.write(f'<ol start={pos}>\n')
-                                newmode(LI)
-                                # skip spaces and dash
-                                out.write(elem + '\n')
-                            else:
-                                # numbered title
-                                parsenumberedtitle(group)
+                            # numbered title
+                            parsenumberedtitle(group)
                         elif group[0].isupper():
                             # title
                             inserttitle(1, group, group)
