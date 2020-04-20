@@ -54,7 +54,7 @@ def main(argv):
 
     rawlines = process.stdout.split('\n') # keep \f to detect page breaks
     lines = list()
-    refsre = re.compile(r"\((\d+(\.\d+)+)\)")
+    refsre = re.compile(r"\(((\d+|[A-Z])(\.\d+)+)\)")
     def refrepl(match):
         key = match.group(1)
         return f'(<a href="#{key}">{key}</a>)'
