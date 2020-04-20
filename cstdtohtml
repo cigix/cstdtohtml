@@ -54,10 +54,47 @@ def main(argv):
 
     rawlines = process.stdout.split('\n') # keep \f to detect page breaks
     lines = list()
-    refsre = re.compile(r"\(((\d+|[A-Z])(\.\d+)+)\)")
+    # regex for refs
+    annexregex = r"[A-Z]\b"
+    keyregex = fr"(\d+|({annexregex}))(\.\d+)+"
+    # matches '(key)' and '(see key)'
+    parenrefre = re.compile(fr"""(?: # non-catching group
+                                  (?<= # look-behind
+                                   \(
+                                  )
+                                  |
+                                  (?<= # look-behind
+                                   \(see\ # there's a space here
+                                  )
+                                 )
+                                 ( # group 1, the key
+                                  {keyregex}
+                                 )
+                                 (?= # look-ahead
+                                  \)
+                                 )""", re.X)
+    # matches 'by key', 'in key', and 'see key'
+    inrefre = re.compile(fr"""(?: # non-catching group
+                               # look-behinds
+                               (?<=by\ )
+                               | (?<=in\ )
+                               | (?<=see\ )
+                              )
+                              ( # group 1, the key
+                               {keyregex}
+                              )""", re.X)
+    annexrefre = re.compile(fr"""( # group 1, the text
+                                  annex\ # there's a space here
+                                  ( # group 2, the key
+                                   {annexregex}
+                                  )
+                                 )""", re.X)
     def refrepl(match):
         key = match.group(1)
-        return f'(<a href="#{key}">{key}</a>)'
+        return f'<a href="#{key}">{key}</a>'
+    def annexrefrepl(match):
+        key = match.group(2)
+        return f'<a href="#{match.group(2)}">{match.group(2)}</a>'
 
     # Preprocessing of text file
     for rawline in rawlines:
@@ -74,7 +111,10 @@ def main(argv):
             if not lines[-1]:
                 continue # exclude this second empty line
         escapedline = html.escape(rawline)
-        refedline = refsre.sub(refrepl, escapedline)
+        refedline = (
+                annexrefre.sub(annexrefrepl,
+                    inrefre.sub(refrepl,
+                        parenrefre.sub(refrepl, escapedline))))
         lines.append(refedline)
 
     with open(".cstdtohtml_raw", 'w') as f:
