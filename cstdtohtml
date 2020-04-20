@@ -202,7 +202,15 @@ f"""<!DOCTYPE html>
                     out.write(f"<h2>{line}</h2>\n")
                     newmode(UL)
                 elif in_toc:
-                    if line[0].isalpha():
+                    if line[:6] == "Annex ":
+                        # title SP+ page
+                        while 3 < len(modestack):
+                            endmode() # back to bottom UL
+                        title = groups[0]
+                        key = line[6]
+                        out.write(f'<li><a href="#{key}">{title}</a></li>\n')
+                        toclevel = 1
+                    elif line[0].isalpha():
                         # title SP+ page
                         while 3 < len(modestack):
                             endmode() # back to bottom UL
