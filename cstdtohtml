@@ -339,11 +339,12 @@ f"""<!DOCTYPE html>
                         elif group[:6] == "Annex ":
                             # annex title
                             inserttitle(1, group[6], group)
-                        elif group[0].isupper():
+                        elif group[0].isupper() and group.count(' ') == 0:
                             # title
                             inserttitle(1, group, group)
                         else:
                             # probably a paragraph lost to a page break or code
+                            backtobody()
                             newmode(P)
                             out.write(line.lstrip() + '\n')
                     elif len(groups) == 2 and groups[0][0].isdigit():
