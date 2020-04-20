@@ -307,18 +307,25 @@ f"""<!DOCTYPE html>
                         # numbered paragraph
                         if mode == P:
                             endmode()
-                        parnum, line = line.split(maxsplit=1)
+                        split = line.split(maxsplit=1)
+                        if len(split) == 1:
+                            # only the number (happens when paragraph starts
+                            # with a code block, for example)
+                            parnum = line
+                            line = ""
+                        else:
+                            parnum, line = split
                         # sanity check
                         try:
                             int(parnum)
                         except:
                             print(i, line)
                             sys.exit(1)
-                        modestack.append(P)
+                        key = f"{parkey}.{parnum}"
                         if parkey is None:
                             print(i, line)
                             sys.exit(1)
-                        key = f"{parkey}.{parnum}" 
+                        modestack.append(P)
                         out.write(f'<p id="{key}">\n')
                         out.write(f'<a href="#{key}">{parnum}</a> ')
                     else:
