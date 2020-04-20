@@ -262,7 +262,9 @@ f"""<!DOCTYPE html>
                         # No idea why, but there's an empty line in the
                         # middle of the footnote.
                         i += 1
-                    elif split[0][:-1].isdigit() and split[0][-1] == '.':
+                    elif (line[:5].isspace()
+                            and split[0][:-1].isdigit()
+                            and split[0][-1] == '.'):
                         # ordered list element
                         pos = split[0][:-1]
                         elem = split[1]
