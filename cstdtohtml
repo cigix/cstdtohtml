@@ -336,6 +336,9 @@ f"""<!DOCTYPE html>
                         if group[0].isdigit():
                             # numbered title
                             parsenumberedtitle(group)
+                        elif group[:6] == "Annex ":
+                            # annex title
+                            inserttitle(1, group[6], group)
                         elif group[0].isupper():
                             # title
                             inserttitle(1, group, group)
