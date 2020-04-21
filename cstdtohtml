@@ -303,7 +303,7 @@ f"""<!DOCTYPE html>
                             backtobody()
                             newmode(PRE)
                         out.write(line[14:] + '\n')
-                    elif (line[:6].isspace()
+                    elif (line[:5].isspace()
                             and split[0][:-1].isdigit()
                             and split[0][-1] == ')'):
                         # footnote
@@ -312,9 +312,10 @@ f"""<!DOCTYPE html>
                         modestack.append(P)
                         out.write('<p class="footnote">\n')
                         out.write(line.lstrip())
-                        # No idea why, but there's an empty line in the
-                        # middle of the footnote.
-                        i += 1
+                        # No idea why, but sometimes there's an empty line in
+                        # the middle of the footnote.
+                        if not lines[i + 1]:
+                            i += 1
                     elif (line[:5].isspace()
                             and split[0][:-1].isdigit()
                             and split[0][-1] == '.'):
