@@ -127,6 +127,8 @@ def main(argv):
     titleheaderline = lines[2]
     titleheader = groupwords(titleheaderline)
 
+    titleline = lines[4].strip()
+
     with open(outputfile, "wt") as out:
         out.write(
 f"""<!DOCTYPE html>
@@ -138,10 +140,13 @@ f"""<!DOCTYPE html>
 </head>
 <body>
 """)
+
         out.write("<header>")
         for words in titleheader:
             out.write(f"<div>{words}</div>")
         out.write("</header>\n")
+
+        out.write(f"<h1>{titleline}</h1>\n")
 
         modestack = [HTML, BODY]
         def newmode(mode):
@@ -154,7 +159,7 @@ f"""<!DOCTYPE html>
             while 2 < len(modestack):
                 endmode()
 
-        i = 3
+        i = 5
         in_abstract = False
         in_toc = False
         toclevel = None
