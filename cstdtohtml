@@ -102,11 +102,16 @@ def main(argv):
         # * successive empty lines
         # * footer before page break
         # * header after page break
+        # * empty line before nested list
         if rawline:
             if rawline[0] == '\f':
                 # page break
                 lines.pop() # remove the previous line
                 continue # exclude this line
+            elif rawline.split(maxsplit=1)[0] == '•':
+                # nested list
+                if not lines[-1]:
+                    lines.pop()
         else:
             if not lines[-1]:
                 continue # exclude this second empty line
@@ -292,6 +297,15 @@ f"""<!DOCTYPE html>
                         newmode(LI)
                         # skip spaces and dash
                         out.write(line.lstrip()[2:] + '\n')
+                    elif groups[0][0] == '•' and mode == LI:
+                        # nested list element
+                        if len(modestack) < 5:
+                            # First element in the nested list
+                            newmode(UL)
+                        else:
+                            endmode() # close previous item
+                        newmode(LI)
+                        out.write(split[1] + '\n')
                     elif groups[0] == "Abstract":
                         in_abstract = True
                         modestack.append(P)
