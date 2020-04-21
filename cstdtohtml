@@ -17,7 +17,7 @@ OL = TAG.index("ol")
 LI = TAG.index("li")
 PRE = TAG.index("pre")
 # These modes cannot contain text, you must get out of them before writing
-NOTEXT = {UL, OL}
+NOTEXT = {UL, OL, PRE}
 # These modes cannot contain text but you should not get out of them either, you
 # should open a P
 NOOUT = {HTML, BODY}
