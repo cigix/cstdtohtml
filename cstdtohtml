@@ -325,12 +325,12 @@ f"""<!DOCTYPE html>
                         modestack.append(P)
                         out.write('<p id="abstract">\n')
                         out.write(line)
-                    elif line[:14].isspace():
+                    elif line[:14].isspace() and (mode is None or mode == P):
                         # code
                         if mode != PRE:
                             backtobody()
                             newmode(PRE)
-                        out.write(line[14:] + '\n')
+                        out.write(line + '\n')
                     elif (line[:5].isspace()
                             and split[0][:-1].isdigit()
                             and split[0][-1] == ')'):
@@ -385,7 +385,7 @@ f"""<!DOCTYPE html>
                         # sometimes code in lists gets the wrong indentation
                         backtobody()
                         newmode(PRE)
-                        out.write(line[6:] + '\n')
+                        out.write(line + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
                         if group[0].isdigit():
