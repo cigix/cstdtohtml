@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 # Various HTML tags
-TAG = ["html", "body", "p", "ul", "ol", "li", "pre"]
+TAG = ["html", "body", "p", "ul", "ol", "li", "pre", "dl", "dd"]
 # Modes
 HTML = TAG.index("html")
 BODY = TAG.index("body")
@@ -15,9 +15,11 @@ P = TAG.index("p")
 UL = TAG.index("ul")
 OL = TAG.index("ol")
 LI = TAG.index("li")
+DL = TAG.index("dl")
+DD = TAG.index("dd")
 PRE = TAG.index("pre")
 # These modes cannot contain text, you must get out of them before writing
-NOTEXT = {UL, OL, PRE}
+NOTEXT = {UL, OL, DL, PRE}
 # These modes cannot contain text but you should not get out of them either, you
 # should open a P
 NOOUT = {HTML, BODY}
@@ -30,6 +32,19 @@ non-spaces.
 '''
     # Split into groups of words, remove empty groups, remove leading spaces
     return list(map(str.lstrip, filter(None, string.split("  "))))
+
+def isint(string: str):
+    '''isint(string: str): Check if a string parses to a number.
+
+Return False if `int(string)` raises ValueException, otherwise True.
+'''
+    # Replace MINUS SIGN with HYPHEN-MINUS
+    string = string.replace('−', '-')
+    try:
+        int(string)
+    except ValueError:
+        return False
+    return True
 
 def main(argv):
     usagestr = ("Usage: " + os.path.basename(argv[0]) +
@@ -234,9 +249,7 @@ f"""<!DOCTYPE html>
                             endmode() # back to bottom UL
                         key, title, _ = groupwords(line)
                         # sanity check
-                        try:
-                            int(key)
-                        except ValueError:
+                        if not isint(key):
                             print("Key not int", i, line, modestack)
                             sys.exit(1)
                         newmode(LI)
@@ -349,6 +362,18 @@ f"""<!DOCTYPE html>
                         newmode(LI)
                         # skip spaces and dash
                         out.write(elem + '\n')
+                    elif (1 < len(split)
+                            and line[:5].isspace()
+                            and isint(groups[0])):
+                        # values list
+                        if mode == DD:
+                            endmode()
+                        else:
+                            backtobody()
+                            newmode(DL)
+                        out.write(f"<dt>{split[0]}</dt>")
+                        newmode(DD)
+                        out.write(split[1] + '\n')
                     elif mode is not None and mode not in NOTEXT:
                         # continuation of a multiline element
                         # up to 8 leading spaces
@@ -399,9 +424,7 @@ f"""<!DOCTYPE html>
                         else:
                             parnum, line = split
                         # sanity check
-                        try:
-                            int(parnum)
-                        except:
+                        if not isint(parnum):
                             print("Wrong number", i, line, modestack)
                             sys.exit(1)
                         key = f"{parkey}.{parnum}"
