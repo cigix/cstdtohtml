@@ -78,7 +78,7 @@ def main(argv):
                                # look-behinds
                                (?<=by\ )
                                | (?<=in\ )
-                               | (?<=see\ )
+                               | (?<=[Ss]ee\ )
                               )
                               ( # group 1, the key
                                {keyregex}
