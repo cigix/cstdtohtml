@@ -352,6 +352,9 @@ f"""<!DOCTYPE html>
                         # continuation of a multiline element
                         # up to 8 leading spaces
                         out.write("<br>\n" + line.lstrip() + '\n')
+                    elif mode == PRE and line[:11].isspace():
+                        # continuation of PRE
+                        out.write(line + '\n')
                     elif line[:8].isspace() and mode == UL:
                         # sometimes code in lists gets the wrong indentation
                         backtobody()
