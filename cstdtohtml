@@ -188,6 +188,7 @@ f"""<!DOCTYPE html>
                     key = key[:-1]
             level = key.count('.') + 1
             inserttitle(level, key, title)
+
         while i < len(lines):
             mode = modestack[-1]
             if mode in NOOUT:
@@ -206,7 +207,7 @@ f"""<!DOCTYPE html>
                     out.write(line)
                 elif line == "Contents":
                     if mode is not None:
-                        print(i, mode, line)
+                        print("Contents but mode", i, line, modestack)
                         sys.exit(1)
                     in_toc = True
                     out.write(f"<h2>{line}</h2>\n")
@@ -236,7 +237,7 @@ f"""<!DOCTYPE html>
                         try:
                             int(key)
                         except ValueError:
-                            print(i, line)
+                            print("Key not int", i, line, modestack)
                             sys.exit(1)
                         newmode(LI)
                         out.write(f'{key} <a href="#{key}">{title}</a>\n')
@@ -280,7 +281,7 @@ f"""<!DOCTYPE html>
                             out.write('{0} <a href="#{0}">{1}</a>\n'
                                       .format(key_str, title))
                     else:
-                        print(i, line)
+                        print("Unidentified TOC entry", i, line, modestack)
                         sys.exit(1)
                 elif line[0] == ' ':
                     # indented line, but what could it be?
@@ -401,11 +402,11 @@ f"""<!DOCTYPE html>
                         try:
                             int(parnum)
                         except:
-                            print(i, line)
+                            print("Wrong number", i, line, modestack)
                             sys.exit(1)
                         key = f"{parkey}.{parnum}"
                         if parkey is None:
-                            print(i, line)
+                            print("No parkey", i, line, modestack)
                             sys.exit(1)
                         modestack.append(P)
                         out.write(f'<p id="{key}">\n')
