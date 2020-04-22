@@ -342,7 +342,8 @@ f"""<!DOCTYPE html>
                         out.write(line.lstrip())
                         # No idea why, but sometimes there's an empty line in
                         # the middle of the footnote.
-                        if not lines[i + 1]:
+                        if (not lines[i + 1]
+                                and not lines[i + 2][5].isdigit()):
                             i += 1
                     elif (line[:5].isspace()
                             and split[0][:-1].isdigit()
