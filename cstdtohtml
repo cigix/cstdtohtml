@@ -114,14 +114,14 @@ def main(argv):
     # Preprocessing of text file
     for rawline in rawlines:
         # criteria of exclusion:
-        # * successive empty lines
+        # * successive empty lines, except at page break
         # * footer before page break
         # * header after page break
         # * empty line before nested list
         if rawline:
             if rawline[0] == '\f':
                 # page break
-                lines.pop() # remove the previous line
+                lines[-1] = "" # replace previous line with empty line
                 continue # exclude this line
             elif rawline.split(maxsplit=1)[0] == '•':
                 # nested list
@@ -350,9 +350,14 @@ f"""<!DOCTYPE html>
                         out.write(line.lstrip())
                         # No idea why, but sometimes there's an empty line in
                         # the middle of the footnote.
-                        if (not lines[i + 1]
-                                and not lines[i + 2][5].isdigit()):
+                        if not lines[i + 1]:
                             i += 1
+                        # Also no idea why, sometimes they get really weird
+                        # indentation.
+                        j = 1
+                        while lines[i + j]:
+                            lines[i + j] = " " * 4 + lines[i + j].lstrip()
+                            j += 1
                     elif (line[:5].isspace()
                             and split[0][:-1].isdigit()
                             and split[0][-1] == '.'):
