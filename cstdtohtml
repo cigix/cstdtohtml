@@ -390,7 +390,8 @@ f"""<!DOCTYPE html>
                         out.write(line + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
-                        if group[0].isdigit():
+                        if group[0].isdigit() and (split[0][-1] == '.'
+                                                    or split[0][-1].isdigit()):
                             # numbered title
                             parsenumberedtitle(group)
                         elif group[:6] == "Annex ":
