@@ -326,6 +326,12 @@ f"""<!DOCTYPE html>
                         modestack.append(P)
                         out.write('<p id="abstract">\n')
                         out.write(line)
+                    elif (line[:14].isspace()
+                            and mode == UL
+                            and 3 < len(modestack)):
+                        # Continuation of LI after UL
+                        endmode()
+                        out.write(line.strip() + '\n')
                     elif line[:14].isspace() and (mode is None or mode == P):
                         # code
                         if mode != PRE:
