@@ -339,7 +339,7 @@ f"""<!DOCTYPE html>
                             backtobody()
                             newmode(PRE)
                         out.write(line + '\n')
-                    elif (line[:5].isspace()
+                    elif (line[:4].isspace()
                             and split[0][:-1].isdigit()
                             and split[0][-1] == ')'):
                         # footnote
