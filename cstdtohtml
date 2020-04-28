@@ -333,7 +333,7 @@ f"""<!DOCTYPE html>
                         # Continuation of LI after UL
                         endmode()
                         out.write(line.strip() + '\n')
-                    elif line[:14].isspace() and (mode is None or mode == P):
+                    elif line[:11].isspace() and (mode is None or mode == P):
                         # code
                         if mode != PRE:
                             backtobody()
