@@ -383,17 +383,15 @@ f"""<!DOCTYPE html>
                         out.write(f"<dt>{split[0]}</dt>")
                         newmode(DD)
                         out.write(split[1] + '\n')
+                    elif len(groups) == 2 and groups[0][0].isdigit():
+                        # numbered title
+                        parsenumberedtitle(line)
                     elif mode is not None and mode not in NOTEXT:
                         # continuation of a multiline element
                         # up to 8 leading spaces
                         out.write("<br>\n" + line.lstrip() + '\n')
                     elif mode == PRE and line[:8].isspace():
                         # continuation of PRE
-                        out.write(line + '\n')
-                    elif line[:8].isspace() and (mode is None or mode == UL):
-                        # sometimes code in lists gets the wrong indentation
-                        backtobody()
-                        newmode(PRE)
                         out.write(line + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
@@ -406,6 +404,12 @@ f"""<!DOCTYPE html>
                         elif group[:6] == "Annex ":
                             # annex title
                             inserttitle(1, group[6], group)
+                        elif line[:8].isspace() and (mode is None
+                                                     or mode == UL):
+                            # sometimes code in lists gets the wrong indentation
+                            backtobody()
+                            newmode(PRE)
+                            out.write(line + '\n')
                         elif group[0].isupper() and group.count(' ') == 0:
                             # title
                             if parkey and parkey[0].isdigit():
@@ -420,9 +424,11 @@ f"""<!DOCTYPE html>
                             backtobody()
                             newmode(P)
                             out.write(line.lstrip() + '\n')
-                    elif len(groups) == 2 and groups[0][0].isdigit():
-                        # numbered title
-                        parsenumberedtitle(line)
+                    elif line[:8].isspace() and (mode is None or mode == UL):
+                        # sometimes code in lists gets the wrong indentation
+                        backtobody()
+                        newmode(PRE)
+                        out.write(line + '\n')
                     else:
                         print("indented", i, groups, modestack)
                         sys.exit(1)
