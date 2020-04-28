@@ -187,7 +187,8 @@ f"""<!DOCTYPE html>
         def inserttitle(level, key, title):
             nonlocal parkey
             backtobody()
-            out.write(f'<h{level} id="{key}">{title}</h{level}>\n')
+            out.write(f'<h{level} id="{key}">'
+                      f'<a href="{key}">{title}</a></h{level}>\n')
             parkey = key
         def parsenumberedtitle(line):
             split = line.split(maxsplit=1)
