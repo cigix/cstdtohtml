@@ -206,6 +206,30 @@ f"""<!DOCTYPE html>
             level = key.count('.') + 1
             inserttitle(level, key, title)
 
+        def insertnumberedparagraph(line):
+            if mode == P:
+                endmode()
+            split = line.split(maxsplit=1)
+            if len(split) == 1:
+                # only the number (happens when paragraph starts
+                # with a code block, for example)
+                parnum = line
+                line = ""
+            else:
+                parnum, line = split
+            # sanity check
+            if not isint(parnum):
+                print("Wrong number", i, line, modestack)
+                sys.exit(1)
+            key = f"{parkey}.p{parnum}"
+            if parkey is None:
+                print("No parkey", i, line, modestack)
+                sys.exit(1)
+            modestack.append(P)
+            out.write(f'<p id="{key}">\n')
+            out.write(f'<a href="#{key}">{parnum}</a> ')
+            out.write(line + '\n')
+
         while i < len(lines):
             mode = modestack[-1]
             if mode in NOOUT:
@@ -388,6 +412,11 @@ f"""<!DOCTYPE html>
                         out.write(f"<dt>{split[0]}</dt>")
                         newmode(DD)
                         out.write(split[1] + '\n')
+                    elif (len(groups) == 2
+                            and isint(groups[0])
+                            and line[1].isdigit()):
+                        # numbered paragraph, with 1 space indent somehow
+                        insertnumberedparagraph(line)
                     elif len(groups) == 2 and groups[0][0].isdigit():
                         # numbered title
                         parsenumberedtitle(line)
@@ -442,31 +471,11 @@ f"""<!DOCTYPE html>
                         endmode()
                     if line[0].isdigit():
                         # numbered paragraph
-                        if mode == P:
-                            endmode()
-                        split = line.split(maxsplit=1)
-                        if len(split) == 1:
-                            # only the number (happens when paragraph starts
-                            # with a code block, for example)
-                            parnum = line
-                            line = ""
-                        else:
-                            parnum, line = split
-                        # sanity check
-                        if not isint(parnum):
-                            print("Wrong number", i, line, modestack)
-                            sys.exit(1)
-                        key = f"{parkey}.p{parnum}"
-                        if parkey is None:
-                            print("No parkey", i, line, modestack)
-                            sys.exit(1)
-                        modestack.append(P)
-                        out.write(f'<p id="{key}">\n')
-                        out.write(f'<a href="#{key}">{parnum}</a> ')
+                        insertnumberedparagraph(line)
                     else:
                         if modestack[-1] in NOOUT:
                             newmode(P)
-                    out.write(line + '\n')
+                        out.write(line + '\n')
             elif in_abstract:
                 out.write('\n')
                 endmode()
