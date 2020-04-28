@@ -109,7 +109,7 @@ def main(argv):
         return f'<a href="#{key}">{key}</a>'
     def annexrefrepl(match):
         key = match.group(2)
-        return f'<a href="#{match.group(2)}">{match.group(2)}</a>'
+        return f'<a href="#{match.group(2)}">{match.group(1)}</a>'
 
     # Preprocessing of text file
     for rawline in rawlines:
