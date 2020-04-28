@@ -443,7 +443,7 @@ f"""<!DOCTYPE html>
                         if not isint(parnum):
                             print("Wrong number", i, line, modestack)
                             sys.exit(1)
-                        key = f"{parkey}.{parnum}"
+                        key = f"{parkey}.p{parnum}"
                         if parkey is None:
                             print("No parkey", i, line, modestack)
                             sys.exit(1)
