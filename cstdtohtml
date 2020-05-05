@@ -227,8 +227,7 @@ f"""<!DOCTYPE html>
             inserttitle(level, key, title)
 
         def insertnumberedparagraph(line):
-            if mode == P:
-                endmode()
+            backtobody()
             split = line.split(maxsplit=1)
             if len(split) == 1:
                 # only the number (happens when paragraph starts
@@ -432,10 +431,10 @@ f"""<!DOCTYPE html>
                         out.write(f"<dt>{split[0]}</dt>")
                         newmode(DD)
                         out.write(split[1] + '\n')
-                    elif (len(groups) == 2
-                            and isint(groups[0])
-                            and line[1].isdigit()):
-                        # numbered paragraph, with 1 space indent somehow
+                    elif (1 < len(split)
+                            and isint(split[0])
+                            and not line[:8].isspace()):
+                        # numbered paragraph, with indent somehow
                         insertnumberedparagraph(line)
                     elif len(groups) == 2 and groups[0][0].isdigit():
                         # numbered title
