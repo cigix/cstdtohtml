@@ -488,6 +488,18 @@ f"""<!DOCTYPE html>
                         backtobody()
                         newmode(P)
                         out.write(line.strip() + '\n')
+                    elif groups[0][0] == '#':
+                        # code with wrong indentation
+                        # hotfix it to >=11 spaces indent
+                        curspaces = 1
+                        while line[:curspaces + 1].isspace():
+                            curspaces += 1
+                        addindent = ' ' * (11 - curspaces)
+                        j = 0
+                        while lines[i + j]:
+                            lines[i + j] = addindent + lines[i + j]
+                            j += 1
+                        continue
                     else:
                         print("indented", i, groups, modestack)
                         sys.exit(1)
