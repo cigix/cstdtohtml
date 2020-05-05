@@ -483,6 +483,11 @@ f"""<!DOCTYPE html>
                         backtobody()
                         newmode(PRE)
                         out.write(line + '\n')
+                    elif groups[0][:4] == "&lt;":
+                        # header list
+                        backtobody()
+                        newmode(P)
+                        out.write(line.strip() + '\n')
                     else:
                         print("indented", i, groups, modestack)
                         sys.exit(1)
