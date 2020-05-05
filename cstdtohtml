@@ -475,7 +475,7 @@ f"""<!DOCTYPE html>
                                 and group.count(' ') < 2
                                 and not line[:6].isspace()):
                             # title
-                            if parkey and parkey[0].isdigit():
+                            if parkey and re.fullmatch(keyregex, parkey):
                                 # subtitle in a numbered section
                                 anchor = group.replace(' ', '_')
                                 inserttitle(6, parkey + '.' + anchor, group,
