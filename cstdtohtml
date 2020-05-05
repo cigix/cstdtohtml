@@ -483,11 +483,6 @@ f"""<!DOCTYPE html>
                         backtobody()
                         newmode(PRE)
                         out.write(line + '\n')
-                    elif groups[0][:4] == "&lt;":
-                        # header list
-                        backtobody()
-                        newmode(P)
-                        out.write(line.strip() + '\n')
                     elif groups[0][0] == '#':
                         # code with wrong indentation
                         # hotfix it to >=11 spaces indent
@@ -500,6 +495,12 @@ f"""<!DOCTYPE html>
                             lines[i + j] = addindent + lines[i + j]
                             j += 1
                         continue
+                    elif groups[0][:4] == "&lt;" or (
+                            line[:4].isspace() and len(groups) == 2):
+                        # header list
+                        backtobody()
+                        newmode(P)
+                        out.write(line.strip() + '\n')
                     else:
                         print("indented", i, groups, modestack)
                         sys.exit(1)
