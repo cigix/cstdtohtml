@@ -71,7 +71,8 @@ def main(argv):
     lines = list()
     # regex for refs
     annexregex = r"[A-Z]\b"
-    keyregex = fr"(\d+|({annexregex}))(\.\d+)+"
+    chapterregex = r"\d+"
+    keyregex = fr"(({chapterregex})|({annexregex}))(\.\d+)+"
     # matches '(key)' and '(see key)'
     parenrefre = re.compile(fr"""(?: # non-catching group
                                   (?<= # look-behind
@@ -100,6 +101,7 @@ def main(argv):
                                    )""", re.X)
     # matches 'by key', 'in key', and 'see key'
     inrefre = re.compile(fr"""(?: # non-catching group
+                               \b
                                # look-behinds
                                (?<=by\ )
                                | (?<=in\ )
@@ -109,15 +111,21 @@ def main(argv):
                                {keyregex}
                               )""", re.X)
     annexrefre = re.compile(fr"""( # group 1, the text
-                                  annex\ # there's a space here
+                                  \b annex\ # there's a space here
                                   ( # group 2, the key
                                    {annexregex}
                                   )
                                  )""", re.X)
+    clauserefre = re.compile(fr"""( # group 1, the text
+                                   \b clause\ # there's a space here
+                                   ( # group 2, the key
+                                    {chapterregex}
+                                   )
+                                  )""", re.X)
     def refrepl(match):
         key = match.group(1)
         return f'<a href="#{key}">{key}</a>'
-    def annexrefrepl(match):
+    def chapterrefrepl(match):
         key = match.group(2)
         return f'<a href="#{match.group(2)}">{match.group(1)}</a>'
 
@@ -142,10 +150,11 @@ def main(argv):
                 continue # exclude this second empty line
         escapedline = html.escape(rawline)
         refedline = (
-                annexrefre.sub(annexrefrepl,
-                    inrefre.sub(refrepl,
-                        bracketrefre.sub(refrepl,
-                            parenrefre.sub(refrepl, escapedline)))))
+                annexrefre.sub(chapterrefrepl,
+                    clauserefre.sub(chapterrefrepl,
+                        inrefre.sub(refrepl,
+                            bracketrefre.sub(refrepl,
+                                parenrefre.sub(refrepl, escapedline))))))
         lines.append(refedline)
 
     with open(".cstdtohtml_raw", 'w') as f:
