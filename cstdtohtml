@@ -202,6 +202,7 @@ f"""<!DOCTYPE html>
         i = 5
         in_abstract = False
         in_toc = False
+        in_biblio = False
         toclevel = None
         parkey = None # prefix for the paragraph anchors
         def inserttitle(level, key, title, newparkey = True):
@@ -261,8 +262,27 @@ f"""<!DOCTYPE html>
                 mode = None # we do not need to exit body to change mode
 
             line = lines[i]
-            if line:
-                split = line.split(maxsplit=1)
+            split = line.split(maxsplit=1)
+            if in_biblio:
+                if not line:
+                    if not lines[i + 1]:
+                        # end of biblio
+                        in_biblio = False
+                        backtobody()
+                        i += 1
+                    else:
+                        # end of item
+                        endmode()
+                elif re.fullmatch("\d+\.", split[0]):
+                    # new item
+                    if mode != OL:
+                        endmode()
+                    newmode(LI)
+                    out.write(split[1] + '\n')
+                else:
+                    # continuation of previous item
+                    out.write(line.strip() + '\n')
+            elif line:
                 groups = groupwords(line)
                 if groups == titleheader:
                     # there's a second title header at the beginning of
@@ -389,6 +409,11 @@ f"""<!DOCTYPE html>
                                 + ' ' + lines[i + 2].strip())
                         inserttitle(1, key, title)
                         i += 2
+                    elif groups[0] == "Bibliography":
+                        inserttitle(1, "Bibliography", "Bibliography")
+                        newmode(OL)
+                        i += 1
+                        in_biblio = True
                     elif (line[:14].isspace()
                             and mode == UL
                             and 3 < len(modestack)):
