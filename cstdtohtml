@@ -148,7 +148,14 @@ def main(argv):
         else:
             if not lines[-1]:
                 continue # exclude this second empty line
-        escapedline = html.escape(rawline)
+
+        # IDK what those are doing in here
+        nocontrolline = (rawline
+                .replace('\x03', '☐')
+                .replace('\x06', '')
+                .replace('\x07', ''))
+
+        escapedline = html.escape(nocontrolline)
         refedline = (
                 annexrefre.sub(chapterrefrepl,
                     clauserefre.sub(chapterrefrepl,
@@ -205,6 +212,7 @@ f"""<!DOCTYPE html>
         in_biblio = False
         toclevel = None
         parkey = None # prefix for the paragraph anchors
+        usedparkeys = set()
         def inserttitle(level, key, title, newparkey = True):
             nonlocal parkey
             backtobody()
@@ -212,6 +220,7 @@ f"""<!DOCTYPE html>
                       f'<a href="#{key}">{title}</a></h{level}>\n')
             if newparkey:
                 parkey = key
+                usedparkeys = set()
         def parsenumberedtitle(line):
             split = line.split(maxsplit=1)
             if len(split) == 1:
@@ -226,17 +235,21 @@ f"""<!DOCTYPE html>
                     key = key[:-1]
             level = key.count('.') + 1
             inserttitle(level, key, title)
-
+        def insertparagraph(line):
+            while modestack[-1] in NOTEXT:
+                endmode()
+            if modestack[-1] in NOOUT:
+                newmode(P)
+            out.write(line + '\n')
         def insertnumberedparagraph(line):
-            backtobody()
             split = line.split(maxsplit=1)
             if len(split) == 1:
                 # only the number (happens when paragraph starts
                 # with a code block, for example)
                 parnum = line
-                line = ""
+                text = ""
             else:
-                parnum, line = split
+                parnum, text = split
             # sanity check
             if not isint(parnum):
                 print("Wrong number", i, line, modestack)
@@ -245,16 +258,22 @@ f"""<!DOCTYPE html>
             if parkey is None:
                 print("No parkey", i, line, modestack)
                 sys.exit(1)
+            if parnum == "0" or key in usedparkeys:
+                # probably not a numbered paragraph, use normal paragraph
+                insertparagraph(line)
+                return
+            backtobody()
             modestack.append(P)
             out.write(f'<p id="{key}">\n')
             out.write(f'<a href="#{key}">{parnum}</a> ')
-            if line and line[0] == '—':
+            usedparkeys.add(key)
+            if text and text[0] == '—':
                 # This is actually the beginning of an unordered list
                 endmode()
                 newmode(UL)
                 newmode(LI)
-                line = line[2:]
-            out.write(line + '\n')
+                text = text[2:]
+            out.write(text + '\n')
 
         while i < len(lines):
             mode = modestack[-1]
@@ -314,14 +333,16 @@ else after it. End of translation.</i>""")
                             endmode() # back to bottom UL
                         title = groups[0]
                         key = line[6]
-                        out.write(f'<li><a href="#{key}">{title}</a></li>\n')
+                        newmode(LI)
+                        out.write(f'<a href="#{key}">{title}</a>\n')
                         toclevel = 1
                     elif line[0].isalpha():
                         # title SP+ page
                         while 3 < len(modestack):
                             endmode() # back to bottom UL
                         title = groups[0]
-                        out.write(f'<li><a href="#{title}">{title}</a></li>\n')
+                        newmode(LI)
+                        out.write(f'<a href="#{title}">{title}</a>\n')
                         toclevel = 1
                     elif line[0].isdigit():
                         # number SP+ title SP+ page
@@ -553,15 +574,11 @@ else after it. End of translation.</i>""")
                         print("indented", i, groups, modestack)
                         sys.exit(1)
                 else:
-                    while modestack[-1] in NOTEXT:
-                        endmode()
                     if line[0].isdigit():
                         # numbered paragraph
                         insertnumberedparagraph(line)
                     else:
-                        if modestack[-1] in NOOUT:
-                            newmode(P)
-                        out.write(line + '\n')
+                        insertparagraph(line)
             elif in_abstract:
                 out.write('\n')
                 endmode()
