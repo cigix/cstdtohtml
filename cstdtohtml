@@ -370,6 +370,14 @@ f"""<!DOCTYPE html>
                         modestack.append(P)
                         out.write('<p id="abstract">\n')
                         out.write(line)
+                    elif groups[0][:6] == "Annex ":
+                        # annex header
+                        key = groups[0][6]
+                        title = (line.strip()
+                                + ' ' + lines[i + 1].strip()
+                                + ' ' + lines[i + 2].strip())
+                        inserttitle(1, key, title)
+                        i += 2
                     elif (line[:14].isspace()
                             and mode == UL
                             and 3 < len(modestack)):
@@ -454,9 +462,6 @@ f"""<!DOCTYPE html>
                                         and 0 < split[0].count('.')))):
                             # numbered title
                             parsenumberedtitle(group)
-                        elif group[:6] == "Annex ":
-                            # annex title
-                            inserttitle(1, group[6], group)
                         elif line[:8].isspace() and (mode is None
                                                      or mode == UL):
                             # sometimes code in lists gets the wrong indentation
