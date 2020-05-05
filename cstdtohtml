@@ -247,6 +247,12 @@ f"""<!DOCTYPE html>
             modestack.append(P)
             out.write(f'<p id="{key}">\n')
             out.write(f'<a href="#{key}">{parnum}</a> ')
+            if line and line[0] == '—':
+                # This is actually the beginning of an unordered list
+                endmode()
+                newmode(UL)
+                newmode(LI)
+                line = line[2:]
             out.write(line + '\n')
 
         while i < len(lines):
