@@ -188,7 +188,7 @@ f"""<!DOCTYPE html>
             nonlocal parkey
             backtobody()
             out.write(f'<h{level} id="{key}">'
-                      f'<a href="{key}">{title}</a></h{level}>\n')
+                      f'<a href="#{key}">{title}</a></h{level}>\n')
             if newparkey:
                 parkey = key
         def parsenumberedtitle(line):
