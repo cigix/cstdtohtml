@@ -503,8 +503,7 @@ f"""<!DOCTYPE html>
                             lines[i + j] = addindent + lines[i + j]
                             j += 1
                         continue
-                    elif groups[0][:4] == "&lt;" or (
-                            line[:4].isspace() and len(groups) in (2, 3, 5)):
+                    elif groups[0][:4] == "&lt;" or len(groups) in (2, 3, 5):
                         # weirdly formatted list
                         backtobody()
                         newmode(P)
