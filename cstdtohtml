@@ -471,7 +471,9 @@ f"""<!DOCTYPE html>
                             backtobody()
                             newmode(PRE)
                             out.write(line + '\n')
-                        elif group[0].isupper() and group.count(' ') < 2:
+                        elif (group[0].isupper()
+                                and group.count(' ') < 2
+                                and not line[:6].isspace()):
                             # title
                             if parkey and parkey[0].isdigit():
                                 # subtitle in a numbered section
