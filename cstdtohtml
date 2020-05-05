@@ -88,6 +88,16 @@ def main(argv):
                                  (?= # look-ahead
                                   \)
                                  )""", re.X)
+    # matches '[key]'
+    bracketrefre = re.compile(fr"""(?<= # look-behind
+                                    \[
+                                   )
+                                   ( # group 1, the key
+                                    {keyregex}
+                                   )
+                                   (?= # look-ahead
+                                    \]
+                                   )""", re.X)
     # matches 'by key', 'in key', and 'see key'
     inrefre = re.compile(fr"""(?: # non-catching group
                                # look-behinds
@@ -134,7 +144,8 @@ def main(argv):
         refedline = (
                 annexrefre.sub(annexrefrepl,
                     inrefre.sub(refrepl,
-                        parenrefre.sub(refrepl, escapedline))))
+                        bracketrefre.sub(refrepl,
+                            parenrefre.sub(refrepl, escapedline)))))
         lines.append(refedline)
 
     with open(".cstdtohtml_raw", 'w') as f:
