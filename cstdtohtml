@@ -436,6 +436,9 @@ f"""<!DOCTYPE html>
                             and not line[:8].isspace()):
                         # numbered paragraph, with indent somehow
                         insertnumberedparagraph(line)
+                    elif mode == PRE and line[:8].isspace():
+                        # continuation of PRE
+                        out.write(line + '\n')
                     elif len(groups) == 2 and groups[0][0].isdigit():
                         # numbered title
                         parsenumberedtitle(line)
@@ -443,9 +446,6 @@ f"""<!DOCTYPE html>
                         # continuation of a multiline element
                         # up to 8 leading spaces
                         out.write("<br>\n" + line.lstrip() + '\n')
-                    elif mode == PRE and line[:8].isspace():
-                        # continuation of PRE
-                        out.write(line + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
                         if (group[0].isdigit()
