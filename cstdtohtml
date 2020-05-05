@@ -299,6 +299,14 @@ f"""<!DOCTYPE html>
                     in_toc = True
                     out.write(f"<h2>{line}</h2>\n")
                     newmode(UL)
+                elif line == "Index":
+                    inserttitle(1, "Index", "Index")
+                    newmode(P)
+                    out.write(
+"""<i>This is too complicated to parse and turn into usable HTML, you can use
+Ctrl+F. Also, since I don't parse the Index, I can only assume there's nothing
+else after it. End of translation.</i>""")
+                    i = len(lines)
                 elif in_toc:
                     if line[:6] == "Annex ":
                         # title SP+ page
