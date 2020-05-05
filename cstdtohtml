@@ -184,12 +184,13 @@ f"""<!DOCTYPE html>
         in_toc = False
         toclevel = None
         parkey = None # prefix for the paragraph anchors
-        def inserttitle(level, key, title):
+        def inserttitle(level, key, title, newparkey = True):
             nonlocal parkey
             backtobody()
             out.write(f'<h{level} id="{key}">'
                       f'<a href="{key}">{title}</a></h{level}>\n')
-            parkey = key
+            if newparkey:
+                parkey = key
         def parsenumberedtitle(line):
             split = line.split(maxsplit=1)
             if len(split) == 1:
@@ -405,7 +406,13 @@ f"""<!DOCTYPE html>
                             inserttitle(1, group[6], group)
                         elif group[0].isupper() and group.count(' ') == 0:
                             # title
-                            inserttitle(1, group, group)
+                            if parkey and parkey[0].isdigit():
+                                # subtitle in a numbered section
+                                inserttitle(6, parkey + '.' + group, group,
+                                            False)
+                            else:
+                                # big title, like Introduction
+                                inserttitle(1, group, group)
                         else:
                             # probably a paragraph lost to a page break or code
                             backtobody()
