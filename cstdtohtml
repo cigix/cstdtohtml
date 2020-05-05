@@ -463,11 +463,12 @@ f"""<!DOCTYPE html>
                             backtobody()
                             newmode(PRE)
                             out.write(line + '\n')
-                        elif group[0].isupper() and group.count(' ') == 0:
+                        elif group[0].isupper() and group.count(' ') < 2:
                             # title
                             if parkey and parkey[0].isdigit():
                                 # subtitle in a numbered section
-                                inserttitle(6, parkey + '.' + group, group,
+                                anchor = group.replace(' ', '_')
+                                inserttitle(6, parkey + '.' + anchor, group,
                                             False)
                             else:
                                 # big title, like Introduction
