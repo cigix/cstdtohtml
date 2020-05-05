@@ -256,6 +256,7 @@ f"""<!DOCTYPE html>
 
             line = lines[i]
             if line:
+                split = line.split(maxsplit=1)
                 groups = groupwords(line)
                 if groups == titleheader:
                     # there's a second title header at the beginning of
@@ -341,9 +342,13 @@ f"""<!DOCTYPE html>
                     else:
                         print("Unidentified TOC entry", i, line, modestack)
                         sys.exit(1)
+                elif (2 <= len(split)
+                        and re.fullmatch(keyregex, split[0])
+                        and split[1][0].isupper()):
+                    # numbered title
+                    parsenumberedtitle(line)
                 elif line[0] == ' ':
                     # indented line, but what could it be?
-                    split = line.split(maxsplit=1)
                     if groups[0][0] == '—':
                         # list element
                         if mode == LI:
@@ -447,7 +452,7 @@ f"""<!DOCTYPE html>
                     elif mode == PRE and line[:8].isspace():
                         # continuation of PRE
                         out.write(line + '\n')
-                    elif len(groups) == 2 and groups[0][0].isdigit():
+                    elif len(groups) == 2 and re.fullmatch(keyregex, groups[0]):
                         # numbered title
                         parsenumberedtitle(line)
                     elif mode is not None and mode not in NOTEXT:
@@ -456,10 +461,8 @@ f"""<!DOCTYPE html>
                         out.write("<br>\n" + line.lstrip() + '\n')
                     elif len(groups) == 1:
                         group = groups[0]
-                        if (group[0].isdigit()
-                                and (split[0][-1] == '.'
-                                    or (split[0][-1].isdigit()
-                                        and 0 < split[0].count('.')))):
+                        if (re.fullmatch("\d+\.", split[0])
+                                or re.fullmatch(keyregex, split[0])):
                             # numbered title
                             parsenumberedtitle(group)
                         elif line[:8].isspace() and (mode is None
