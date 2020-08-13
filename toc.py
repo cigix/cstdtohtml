@@ -44,3 +44,36 @@ class TOC:
             except:
                 print(line)
                 raise
+
+class TOCMatcher:
+    '''A tool to match TOC entries in the contents'''
+    def __init__(self, toc):
+        '''Parameters:
+            - toc: TOC, the table of contents'''
+        def makeregex(title, key):
+            if key is None:
+                return fr"^\s{{4}}{title}$"
+            if key.count('.') == 0:
+                return fr"^\s{{4}}{key}\.\s+{title}$"
+            return fr"^\s{{4}}{key}\s+{title}$"
+        self._tomatchstack = [re.compile(makeregex(t, k))
+                              for t, k in reversed(toc.titles)]
+
+    def match(self, line):
+        '''match(self, line): Match a line against the next TOC entry.
+
+        Parameters:
+            - line: str, the line to match
+
+        Return: bool, True if the line matched
+
+        ⚠️ This function modifies the object. Consequent calls with similar
+        inputs may not give the same output.⚠️
+
+        Only the top entry is matched. If the match is successful, the entry is
+        removed from the stack.'''
+        if self._tomatchstack:
+            if self._tomatchstack[-1].fullmatch(line):
+                self._tomatchstack.pop()
+                return True
+        return False

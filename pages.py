@@ -5,8 +5,7 @@ Define various structured pages.
 Page: a simple page, with a header, a footer, and the rest of the contents
 
 StructuredPage: a collection of elements
-TitlePage: a StructuredPage, with a title
-CoverPage: a TitlePage, with a title and a second header
+CoverPage: a StructuredPage, with a second header and a title
 '''
 
 import re
@@ -70,9 +69,10 @@ class StructuredPage:
         - footnotes: dict of int to elements.Text, the footnotes of the page
         - inelement: boolean, True if the last element was not explicitely
           closed and the next line may belong to it'''
-    def __init__(self, page, startline=0):
+    def __init__(self, page, tocmatcher, startline=0):
         '''Parameters:
             - page: Page, the page to parse
+            - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
         self.elements = list()
@@ -85,7 +85,7 @@ class StructuredPage:
             line = page.content[i]
             if footnoteregex.match(line):
                 break
-            self.addline(line, page.indent)
+            self.addline(line, page.indent, tocmatcher)
             i += 1
         footnotesbegin = i
 
@@ -107,7 +107,7 @@ class StructuredPage:
                         print(line)
                         raise
 
-    def addline(self, line, indent):
+    def addline(self, line, indent, tocmatcher):
         '''addline(self, line): Add a line to the page.
 
         Parse the line and integrate it to the page, either by appending it to
@@ -115,16 +115,20 @@ class StructuredPage:
 
         Parameters:
             - line: str, the line to parse and add
-            - indent: int, the amount of indentation to expect for paragraphs'''
+            - indent: int, the amount of indentation to expect for paragraphs
+            - tocmatcher: toc.TOCMatcher, the TOCMatcher object'''
         if not line:
             self.inelement = False
             return
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
-        if (re.fullmatch(fr"{toc.KEYREGEX}\.", splits[0])
-                and splits[1][0].isupper()):
-            # numbered title
-            self.elements.append(elements.Heading.fromnumberedtitle(line))
+        if tocmatcher.match(line):
+            # title
+            if splits[0][0].isdigit():
+                # numbered title
+                self.elements.append(elements.Heading.fromnumberedtitle(line))
+            else:
+                self.elements.append(elements.Heading(1, line))
             self.inelement = False
             return
         if splits[0][0] in ("—",):
@@ -159,36 +163,24 @@ class StructuredPage:
                          + [f"{n}\t{f.content}"
                             for n, f in self.footnotes.items()])
 
-class TitlePage(StructuredPage):
-    '''A piece of content preceded by a title.
-
-    Attributes:
-        - title: str, the title line
-        - see StructuredPage'''
-    def __init__(self, page, startline=0):
-        '''Parameters:
-            - page: Page, the page to parse
-            - startline: int, optional (default: 0), amount of lines to skip
-              from the beginning of page'''
-        titleline = startline
-        while not page.content[titleline]:
-            titleline += 1
-
-        self.title = page.content[titleline].strip()
-        StructuredPage.__init__(self, page, titleline + 1)
-
-class CoverPage(TitlePage):
+class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
 
     Attributes:
         - subheader: list of str, the second header
-        - see TitlePage'''
-    def __init__(self, page):
+        - title: str, the title line
+        - see StructuredPage'''
+    def __init__(self, page, tocmatcher):
         '''Parameters:
-            - page: Page, the page to parse'''
+            - page: Page, the page to parse
+            - tocmatcher: toc.TOCMatcher, the TOCMatcher object'''
         subheaderline = 0
         while not page.content[subheaderline]:
             subheaderline += 1
+        titleline = subheaderline + 1
+        while not page.content[titleline]:
+            titleline += 1
 
         self.subheader = utils.groupwords(page.content[subheaderline])
-        TitlePage.__init__(self, page, subheaderline + 1)
+        self.title = page.content[titleline].strip()
+        StructuredPage.__init__(self, page, tocmatcher, titleline + 1)

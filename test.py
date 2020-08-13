@@ -6,7 +6,7 @@ import sys
 import pages
 import utils
 from abstract import Abstract
-from toc import TOC
+from toc import TOC, TOCMatcher
 
 def pdftotext(file):
     '''pdftotext(file): Run the file through `pdftotext -layout`.
@@ -65,13 +65,13 @@ def main(argv):
         bibliobegin += 1
     indexbegin = bibliobegin + 1
 
-    coverupages    = unstructuredpages[coverbegin   :abstractbegin]
+    coverupages = unstructuredpages[coverbegin:abstractbegin]
     abstractupages = unstructuredpages[abstractbegin:tocbegin]
-    tocupages      = unstructuredpages[tocbegin     :forewordbegin]
+    tocupages = unstructuredpages[tocbegin:forewordbegin]
     forewordupages = unstructuredpages[forewordbegin:introbegin]
-    introupages    = unstructuredpages[introbegin   :contentsbegin]
+    introupages = unstructuredpages[introbegin:contentsbegin]
     contentsupages = unstructuredpages[contentsbegin:bibliobegin]
-    biblioupages   = unstructuredpages[bibliobegin  :indexbegin]
+    biblioupages = unstructuredpages[bibliobegin:indexbegin]
 
     # The indent on those pages is funky, we force it to zero
     for upage in coverupages + biblioupages:
@@ -81,28 +81,37 @@ def main(argv):
     toc = TOC(tocupages)
 
     # Structured pages
-    def buildstructured(first, tobuild):
-        '''buildstructured(first, tobuild): Build a list of pages.StructuredPage
+    def buildstructured(first, tobuild, tocmatcher):
+        '''buildstructured(first, tobuild, tocmatcher): Build a list of
+        pages.StructuredPage
 
         Parameters:
             - first: subclass of pages.StructuredPahge, the class of the first
               page
             - tobuild: list of pages.Page, the pages to parse
+            - tocmatcher: toc.TOCMatcher, the TOCMatcher object
 
         Return: list of pages.StructuredPage
 
         The first page is built with first, all the others with
         pages.StructuredPage.'''
-        return ([first(tobuild[0])]
-                + [pages.StructuredPage(p) for p in tobuild[1:]])
+        return ([first(tobuild[0], tocmatcher)]
+                + [pages.StructuredPage(p, tocmatcher) for p in tobuild[1:]])
 
-    cover = buildstructured(pages.CoverPage, coverupages)
-    foreword = buildstructured(pages.TitlePage, forewordupages)
-    intro = buildstructured(pages.TitlePage, introupages)
-    contents = buildstructured(pages.CoverPage, contentsupages[:6])
-    biblio = buildstructured(pages.TitlePage, biblioupages)
+    tocmatcher = TOCMatcher(toc)
 
-    print(contents[-1])
+    cover = [pages.CoverPage(coverupages[0], tocmatcher)]
+    cover += [pages.StructuredPage(p, tocmatcher) for p in coverupages[1:]]
+    foreword = [pages.StructuredPage(p, tocmatcher) for p in forewordupages]
+    intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
+    contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
+    contents += [pages.StructuredPage(p, tocmatcher)
+                 for p in contentsupages[1:6]]
+    biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
+
+    for p in cover + foreword + intro + contents + biblio:
+        print(p)
+        print()
 
 if __name__ == '__main__':
     main(sys.argv)
