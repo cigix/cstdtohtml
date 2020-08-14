@@ -30,6 +30,9 @@ class Text:
         else:
             self.content += ' ' + content.strip()
 
+    def __repr__(self):
+        return self.content
+
 class Paragraph(Text):
     '''Attributes:
         - content: str, see Text'''
@@ -101,20 +104,57 @@ class OrderedListItem(Text):
             else:
                 Text.__init__(self, content)
 
-class Heading:
-    '''Attributes:
-        - level: int, the depth of the heading, default: 6
+class TitleHeading:
+    '''A single standing title.
+
+    Attributes:
         - content: str, the text of the heading'''
-    def __init__(self, level, content):
-        self.level = level
+    def __init__(self, content):
         self.content = content.strip()
 
-    @staticmethod
-    def fromnumberedtitle(title):
-        '''fromnumberedtitle(title): Create a Heading with correct level
-        according to section numbering.
+    def __repr__(self):
+        return self.content
 
-        Return: Heading'''
-        split = title.split(maxsplit=1)
-        level = split[0].count('.') + 1
-        return Heading(level, title)
+class NumberedHeading:
+    '''A subsection heading, numbered, without a title.
+
+    Attributes:
+        - key: str, the key of the subsection'''
+    def __init__(self, key):
+        self.key = key.strip()
+
+    def __repr__(self):
+        return self.key
+
+class NumberedTitleHeading(NumberedHeading, TitleHeading):
+    '''Attributes:
+        - see NumberedHeading
+        - see TitleHeading'''
+    def __init__(self, line):
+        key, title = line.split(maxsplit=1)
+        NumberedHeading.__init__(self, key)
+        TitleHeading.__init__(self, title)
+
+    def __repr__(self):
+        return (NumberedHeading.__repr__(self)
+                + ' '
+                + TitleHeading.__repr__(self))
+
+class Code:
+    '''A text container. The contents are not left-stripped.
+
+    Attributes:
+        - lines: list of str, the lines of content'''
+    def __init__(self, content):
+        self.lines = list()
+        self.addcontent(content)
+
+    def addcontent(self, content):
+        '''addcontent(self, content): Append to the contents.
+
+        Parameters:
+            - content: str, the text to append'''
+        self.lines.append(content.rstrip())
+
+    def __repr__(self):
+        return repr(self.lines)

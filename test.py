@@ -106,10 +106,10 @@ def main(argv):
     intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
     contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
     contents += [pages.StructuredPage(p, tocmatcher)
-                 for p in contentsupages[1:6]]
+                 for p in contentsupages[1:8]]
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
-    for p in cover + foreword + intro + contents + biblio:
+    for p in contents:
         print(p)
         print()
 

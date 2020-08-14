@@ -46,21 +46,37 @@ class TOC:
                 raise
 
 class TOCMatcher:
-    '''A tool to match TOC entries in the contents'''
+    '''A tool to match TOC entries and headings in the contents
+
+    This object helps identify the headings in the content, whether because they
+    are referenced in the TOC, or because they are a subheading of the last
+    matched entry from the TOC.'''
     def __init__(self, toc):
         '''Parameters:
             - toc: TOC, the table of contents'''
-        def makeregex(title, key):
+        def maketitleregex(title, key):
             if key is None:
-                return fr"^\s{{4}}{title}$"
+                return re.compile(fr"^\s{{4}}{title}$")
             if key.count('.') == 0:
-                return fr"^\s{{4}}{key}\.\s+{title}$"
-            return fr"^\s{{4}}{key}\s+{title}$"
-        self._tomatchstack = [re.compile(makeregex(t, k))
-                              for t, k in reversed(toc.titles)]
+                return re.compile(fr"^\s{{4}}{key}\.\s+{title}$")
+            return re.compile(fr"^\s{{4}}{key}\s+{title}$")
 
-    def match(self, line):
-        '''match(self, line): Match a line against the next TOC entry.
+        self._titlestack = [maketitleregex(t, k)
+                            for t, k in reversed(toc.titles)]
+
+        def makeheadingregex(key):
+            if key is None:
+                return None
+            return re.compile(fr"^\s{{4}}{key}(\.\d+)+$")
+
+        self._headingstack = [makeheadingregex(k)
+                              for _, k in reversed(toc.titles)]
+        # At the beginning, before any title has been matched, we shall not
+        # match against any heading
+        self._headingstack += [None]
+
+    def matchtitle(self, line):
+        '''matchtitle(self, line): Match a line against the next TOC entry.
 
         Parameters:
             - line: str, the line to match
@@ -72,8 +88,23 @@ class TOCMatcher:
 
         Only the top entry is matched. If the match is successful, the entry is
         removed from the stack.'''
-        if self._tomatchstack:
-            if self._tomatchstack[-1].fullmatch(line):
-                self._tomatchstack.pop()
+        if self._titlestack:
+            if self._titlestack[-1].fullmatch(line):
+                self._titlestack.pop()
+                self._headingstack.pop()
+                return True
+        return False
+
+    def matchheading(self, line):
+        '''matchheading(self, line): Match a line under the latest TOC entry.
+
+        Parameters:
+            - line: str, the line to match
+
+        Return: bool, True if the line matched
+
+        Only the top entry is matched.'''
+        if self._headingstack and self._headingstack[-1] is not None:
+            if self._headingstack[-1].fullmatch(line):
                 return True
         return False

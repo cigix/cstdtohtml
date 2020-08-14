@@ -11,8 +11,7 @@ CoverPage: a StructuredPage, with a second header and a title
 import re
 import sys
 
-import elements
-import toc
+import parser
 import utils
 
 class Page:
@@ -66,102 +65,64 @@ class StructuredPage:
     Attributes:
         - elements: list of various classes from the elements module, the
           contents of the page
-        - footnotes: dict of int to elements.Text, the footnotes of the page
-        - inelement: boolean, True if the last element was not explicitely
-          closed and the next line may belong to it'''
+        - footnotes: dict of int to list of various classes from the elements
+          module, the footnotes of the page'''
     def __init__(self, page, tocmatcher, startline=0):
         '''Parameters:
             - page: Page, the page to parse
             - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
-        self.elements = list()
-        self.inelement = False
-        self.footnotes = dict()
-
         footnoteregex = re.compile(fr"^\s{{{page.indent},}}\d+\)\s\S")
+        lineparser = parser.LineParser(page.indent)
         i = startline
         while i < len(page.content):
             line = page.content[i]
             if footnoteregex.match(line):
                 break
-            self.addline(line, page.indent, tocmatcher)
+            lineparser.parseline(line, tocmatcher)
             i += 1
         footnotesbegin = i
+
+        self.elements = lineparser.elements
+        self.footnotes = dict()
 
         if footnotesbegin == len(page.content):
             return # no footnotes
 
+        footnotes = dict() # int to parser
         lastfootnote = None
         for line in page.content[footnotesbegin:]:
-            if line:
+            try:
                 if footnoteregex.match(line):
                     footnote, text = line.split(maxsplit=1)
-                    self.footnotes[footnote] = elements.Text(text)
+                    try:
+                        footnote = int(footnote[:-1])
+                    except ValueError:
+                        print("Could not parse footnote number",
+                              file=sys.stderr)
+                        raise
+                    footnotes[footnote] = parser.LineParser(page.indent)
+                    footnotes[footnote].parseline(text, tocmatcher, 0)
                     lastfootnote = footnote
                 else:
-                    try:
-                        self.footnotes[lastfootnote].addcontent(line)
-                    except:
-                        print(startline, footnotesbegin, len(page.content))
-                        print(line)
-                        raise
+                    footnotes[lastfootnote].parseline(line, tocmatcher)
+            except:
+                print(footnotes)
+                print(line, sys.stderr)
+                raise
 
-    def addline(self, line, indent, tocmatcher):
-        '''addline(self, line): Add a line to the page.
-
-        Parse the line and integrate it to the page, either by appending it to
-        an existing element, or by building a new element.
-
-        Parameters:
-            - line: str, the line to parse and add
-            - indent: int, the amount of indentation to expect for paragraphs
-            - tocmatcher: toc.TOCMatcher, the TOCMatcher object'''
-        if not line:
-            self.inelement = False
-            return
-        splits = line.split(maxsplit=1)
-        groups = utils.groupwords(line)
-        if tocmatcher.match(line):
-            # title
-            if splits[0][0].isdigit():
-                # numbered title
-                self.elements.append(elements.Heading.fromnumberedtitle(line))
-            else:
-                self.elements.append(elements.Heading(1, line))
-            self.inelement = False
-            return
-        if splits[0][0] in ("—",):
-            self.elements.append(elements.UnorderedListItem(line))
-            self.inelement = True
-            return
-        if indent != 0 and line[0].isdigit():
-            # numbered paragraph, with number in left margin
-            self.elements.append(elements.NumberedParagraph(line))
-            self.inelement = True
-            return
-        if splits[0][:-1].isdigit() and splits[0][-1] == '.':
-            self.elements.append(elements.OrderedListItem(line))
-            self.inelement = True
-            return
-        if indent == 0 or line[:indent].isspace():
-            if self.inelement and isinstance(self.elements[-1], elements.Text):
-                # continuation of previous text element
-                self.elements[-1].addcontent(line)
-                return
-            # new paragraph
-            self.elements.append(elements.Paragraph(line))
-            return
-
-        print("Could not parse line", file=sys.stderr)
-        print(line, file=sys.stderr)
-        raise NotImplementedError
+        for f, p in footnotes.items():
+            self.footnotes[f] = p.elements
 
     def __repr__(self):
-        return '\n'.join([f"{e.__class__.__name__:20}{e.content}"
-                          for e in self.elements]
-                         + [f"{n}\t{f.content}"
-                            for n, f in self.footnotes.items()])
+        elements = '\n'.join(f"{e.__class__.__name__:25}{e}"
+                             for e in self.elements)
+        footnotes = (str(f)
+                     + ') '
+                     + '\n   '.join(f"{e.__class__.__name__:22}{e}" for e in l)
+                     for f, l in self.footnotes.items())
+        return elements + '\n' + '\n'.join(footnotes)
 
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
