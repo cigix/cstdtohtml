@@ -24,6 +24,7 @@ class LineParser:
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
+        #print(tocmatcher._titlestack[-1], tocmatcher._headingstack[-1], line, sep='\t')
         if tocmatcher.matchtitle(line):
             # title
             if splits[0][0].isdigit():
@@ -70,6 +71,7 @@ class LineParser:
 
     def _parselinewithindent(self, line, indent, tocmatcher):
         if line[:indent].isspace():
+            #print(f"{indent}\t|{line[indent:]}")
             return self._parselinewithoutindent(line[indent:], tocmatcher)
         try:
             num = int(line[:indent])
