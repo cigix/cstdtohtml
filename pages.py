@@ -21,13 +21,13 @@ class Page:
         - header: str, the header line
         - footer: str, the footer line
         - content: list of str, all the other lines
-        - indent: int, the minimal amount of space for indented content
+        - indent: int, columns of left margin
 
     header and footer are stripped. content starts and ends with non-empty
-    lines. content lines are right stripped, and there is no left margin, i.e.
-    spaces are removed from the left until there is at least one line with no
-    spaces. indent is the smallest non-zero amount of space starting a line,
-    after left margin removal.'''
+    lines. content lines are right stripped. indent is the number of columns at
+    the beginning of all content lines where only paragraph numbering can be
+    found.
+    '''
     def __init__(self, page):
         '''
         Parameters:
@@ -52,12 +52,41 @@ class Page:
         indents = sorted(set(len(line) - len(line.lstrip())
                              for line in contentlines
                              if line))
-        margin = indents[0] # the indent all lines have
+        if indents[0] == 0 and len(indents) >= 2:
+            # there are different indents, we need to find the maximal one such
+            # that only paragraph numbers are under the indent
+            def checkonlynumbersinmargin(lines, margin):
+                if margin == 0:
+                    return True
+
+                for line in lines:
+                    if line[:margin].strip():
+                        try:
+                            int(line[:margin])
+                        except ValueError:
+                            return False
+                return True
+            # initial estimation
+            indent = indents[1]
+            if checkonlynumbersinmargin(contentlines, indent):
+                # the initial estimation is good, try to increase
+                indent += 1
+                while checkonlynumbersinmargin(contentlines, indent):
+                    indent += 1
+                indent -= 1
+            else:
+                # the initial estimation is not good, try to decrease
+                while (indent > 0
+                       and not checkonlynumbersinmargin(contentlines, indent)):
+                    indent -= 1
+            self.indent = indent
+        else:
+            # everything is indented, so there is no left margin
+            self.indent = 0
 
         self.header = lines[header].lstrip()
         self.footer = lines[footer].lstrip()
-        self.content = [line[margin:] for line in contentlines]
-        self.indent = indents[1] - margin if 2 <= len(indents) else 0
+        self.content = contentlines
 
 class StructuredPage:
     '''A collection of elements making up the contents of a page.
@@ -73,7 +102,7 @@ class StructuredPage:
             - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
-        footnoteregex = re.compile(fr"^\s{{{page.indent},}}\d+\)\s\S")
+        footnoteregex = re.compile(fr"^\s+\d+\)\s\S")
         lineparser = parser.LineParser(page.indent)
         i = startline
         while i < len(page.content):

@@ -36,6 +36,8 @@ def main(argv):
     #    except:
     #        print(i, page)
     #        raise
+    #pages.Page(text.split('\f')[374])
+    #exit(42)
     unstructuredpages = [pages.Page(p) for p in text.split('\f') if p]
     for i in range(len(unstructuredpages)):
         with open(f"test_{i}.txt", 'w') as f:
@@ -73,33 +75,11 @@ def main(argv):
     contentsupages = unstructuredpages[contentsbegin:bibliobegin]
     biblioupages = unstructuredpages[bibliobegin:indexbegin]
 
-    # The indent on those pages is funky, we force it to zero
-    for upage in coverupages + biblioupages:
-        upage.indent = 0
-
     abstract = Abstract(abstractupages)
     toc = TOC(tocupages)
-
-    # Structured pages
-    def buildstructured(first, tobuild, tocmatcher):
-        '''buildstructured(first, tobuild, tocmatcher): Build a list of
-        pages.StructuredPage
-
-        Parameters:
-            - first: subclass of pages.StructuredPahge, the class of the first
-              page
-            - tobuild: list of pages.Page, the pages to parse
-            - tocmatcher: toc.TOCMatcher, the TOCMatcher object
-
-        Return: list of pages.StructuredPage
-
-        The first page is built with first, all the others with
-        pages.StructuredPage.'''
-        return ([first(tobuild[0], tocmatcher)]
-                + [pages.StructuredPage(p, tocmatcher) for p in tobuild[1:]])
-
     tocmatcher = TOCMatcher(toc)
 
+    # Structured pages
     cover = [pages.CoverPage(coverupages[0], tocmatcher)]
     cover += [pages.StructuredPage(p, tocmatcher) for p in coverupages[1:]]
     foreword = [pages.StructuredPage(p, tocmatcher) for p in forewordupages]

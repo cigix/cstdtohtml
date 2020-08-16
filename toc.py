@@ -56,10 +56,10 @@ class TOCMatcher:
             - toc: TOC, the table of contents'''
         def maketitleregex(title, key):
             if key is None:
-                return re.compile(fr"^\s{{4}}{title}$")
+                return re.compile(fr"^{title}$")
             if key.count('.') == 0:
-                return re.compile(fr"^\s{{4}}{key}\.\s+{title}$")
-            return re.compile(fr"^\s{{4}}{key}\s+{title}$")
+                return re.compile(fr"^{key}\.\s+{title}$")
+            return re.compile(fr"^{key}\s+{title}$")
 
         self._titlestack = [maketitleregex(t, k)
                             for t, k in reversed(toc.titles)]
@@ -67,7 +67,7 @@ class TOCMatcher:
         def makeheadingregex(key):
             if key is None:
                 return None
-            return re.compile(fr"^\s{{4}}{key}(\.\d+)+$")
+            return re.compile(fr"^{key}(\.\d+)+$")
 
         self._headingstack = [makeheadingregex(k)
                               for _, k in reversed(toc.titles)]

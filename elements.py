@@ -42,20 +42,9 @@ class NumberedParagraph(Text):
     '''Attributes:
         - number: int, the number associated to the paragraph
         - content: str, see Text'''
-    def __init__(self, content):
-        try:
-            (number, text) = content.split(maxsplit=1)
-        except ValueError:
-            print("Could not split number", file=sys.stderr)
-            print(content, file=sys.stderr)
-            raise
-        else:
-            try:
-                self.number = int(number)
-            except ValueError:
-                print("Could not parse numbered paragraph", file=sys.stderr)
-                print(content, file=sys.stderr)
-            Text.__init__(self, text)
+    def __init__(self, number, content):
+        self.number = number
+        Text.__init__(self, content)
 
 class UnorderedListItem(Text):
     '''A member of an unordered list.
