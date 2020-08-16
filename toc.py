@@ -67,7 +67,7 @@ class TOCMatcher:
         def makeheadingregex(key):
             if key is None:
                 return None
-            return re.compile(fr"^{key}(\.\d+)+$")
+            return re.compile(fr"^{key}(\.\d+)+")
 
         self._headingstack = [makeheadingregex(k)
                               for _, k in reversed(toc.titles)]
@@ -105,6 +105,6 @@ class TOCMatcher:
 
         Only the top entry is matched.'''
         if self._headingstack and self._headingstack[-1] is not None:
-            if self._headingstack[-1].fullmatch(line):
+            if self._headingstack[-1].match(line):
                 return True
         return False

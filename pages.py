@@ -148,8 +148,8 @@ class StructuredPage:
         elements = '\n'.join(f"{e.__class__.__name__:25}{e}"
                              for e in self.elements)
         footnotes = (str(f)
-                     + ') '
-                     + '\n   '.join(f"{e.__class__.__name__:22}{e}" for e in l)
+                     + ')\t'
+                     + '\n\t'.join(f"{e.__class__.__name__:17}{e}" for e in l)
                      for f, l in self.footnotes.items())
         return elements + '\n' + '\n'.join(footnotes)
 

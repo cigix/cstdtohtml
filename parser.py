@@ -26,17 +26,21 @@ class LineParser:
         groups = utils.groupwords(line)
         #print(tocmatcher._titlestack[-1], tocmatcher._headingstack[-1], line, sep='\t')
         if tocmatcher.matchtitle(line):
-            # title
             if splits[0][0].isdigit():
                 # numbered title
                 self.elements.append(elements.NumberedTitleHeading(line))
             else:
+                # title
                 self.elements.append(elements.TitleHeading(line))
             self._inelement = False
             return
         if tocmatcher.matchheading(line):
-            # heading
-            self.elements.append(elements.NumberedHeading(line))
+            if len(splits) == 2:
+                # numbered title
+                self.elements.append(elements.NumberedTitleHeading(line))
+            else:
+                # heading
+                self.elements.append(elements.NumberedHeading(line))
             self._inelement = False
             return
         if splits[0][0] in ("—", '•'):
@@ -44,12 +48,13 @@ class LineParser:
             self.elements.append(elements.UnorderedListItem(line))
             self._inelement = True
             return
+        #print(splits, line)
         if splits[0][:-1].isdigit() and splits[0][-1] == '.':
             # ordered list
             self.elements.append(elements.OrderedListItem(line))
             self._inelement = True
             return
-        if line[:5].isspace():
+        if line[:8].isspace():
             # code block
             if (self._inelement
                     and isinstance(self.elements[-1], elements.Code)):
