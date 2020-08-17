@@ -63,6 +63,13 @@ class LineParser:
             self.elements.append(elements.Code(line))
             self._inelement = True
             return
+        if line[:4].isspace():
+            # indented, there's something fishy here
+            if (self._inelement
+                    and isinstance(self.elements[-1], elements.Code)):
+                self.elements[-1].addcontent(line)
+                return
+            # idk, make it a paragraph
 
         # regular text
         if self._inelement and isinstance(self.elements[-1], elements.Text):
