@@ -24,6 +24,11 @@ class LineParser:
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
+        if line[:20] == "Forward references: ":
+            # make it its own paragraph
+            self.elements.append(elements.Paragraph(line))
+            self._inelement = True
+            return
         #print(tocmatcher._titlestack[-1], tocmatcher._headingstack[-1], line, sep='\t')
         if tocmatcher.matchtitle(line):
             if splits[0][0].isdigit():
