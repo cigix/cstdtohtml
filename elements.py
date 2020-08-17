@@ -20,18 +20,15 @@ class Text:
             - content: str, the text to append
 
         If the last word of the paragraph starts with "http://", the content
-        gets concatenated directly. If the paragraph ended with a dash ('-'), it
-        is removed and the content gets concatenated directly. In any other
-        case, a space is introduced during the concatenation.'''
+        gets concatenated directly. Otherwise, the content is concatenated with
+        a newline character'''
         if self.content.split()[-1][:7] == "http://":
             self.content += content.strip()
-        elif self.content[-1] == '-':
-            self.content = self.content[:-1] + content.strip()
         else:
-            self.content += ' ' + content.strip()
+            self.content += '\n' + content.strip()
 
-    def __repr__(self):
-        return self.content
+    def __str__(self):
+        return self.content.replace('\n', r"\n")
 
 class Paragraph(Text):
     '''Attributes:
@@ -69,6 +66,9 @@ class UnorderedListItem(Text):
                 print(line, file=sys.stderr)
                 raise NotImplementedError
             Text.__init__(self, content)
+
+    def __repr__(self):
+        return "  " * (self.level - 1) + self.content
 
 class OrderedListItem(Text):
     '''A member of an ordered list.
