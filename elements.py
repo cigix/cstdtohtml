@@ -147,3 +147,29 @@ class Code:
 
     def __repr__(self):
         return repr(self.lines)
+
+class ValueDefinition(Text):
+    '''A number associated with a definition.
+
+    Attributes:
+        - number: int, the number being defined
+        - see Text'''
+    def __init__(self, line):
+        try:
+            (number, content) = line.split(maxsplit=1)
+        except ValueError:
+            print("Could not split line", file=sys.stderr)
+            print(line, file=sys.stderr)
+            raise
+        else:
+            try:
+                self.number = int(number)
+            except ValueError:
+                print("Could not parse value definition", file=sys.stderr)
+                print(line, file=sys.stderr)
+                raise
+            else:
+                Text.__init__(self, content)
+
+    def __str__(self):
+        return str(self.number) + ' ' + Text.__str__(self)

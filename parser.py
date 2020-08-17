@@ -54,20 +54,31 @@ class LineParser:
             self.elements.append(elements.OrderedListItem(line))
             self._inelement = True
             return
-        if line[:8].isspace():
-            # code block
-            if (self._inelement
-                    and isinstance(self.elements[-1], elements.Code)):
-                self.elements[-1].addcontent(line)
-                return
-            self.elements.append(elements.Code(line))
+        if utils.isint(line[:8]):
+            # value definition
+            self.elements.append(elements.ValueDefinition(line))
+            self._inelement = True
+            return
+        if line[0] == '−' and utils.isint(line[1:8]):
+            # value definition, but with an unparsable − U+2212 MINUS SIGN
+            # instead of - U+002D HYPHEN-MINUS
+            self.elements.append(elements.ValueDefinition(line.replace('−',
+                                                                       '-')))
             self._inelement = True
             return
         if line[:4].isspace():
-            # indented, there's something fishy here
-            if (self._inelement
-                    and isinstance(self.elements[-1], elements.Code)):
-                self.elements[-1].addcontent(line)
+            # indented
+            if self._inelement:
+                # maybe it's part of the previous element ?
+                if (isinstance(self.elements[-1], elements.Code)
+                    or isinstance(self.elements[-1], elements.ValueDefinition)):
+                    self.elements[-1].addcontent(line)
+                    return
+            if line[:8].isspace():
+                # code block
+                # we already checked for _inelement
+                self.elements.append(elements.Code(line))
+                self._inelement = True
                 return
             # idk, make it a paragraph
 
