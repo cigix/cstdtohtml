@@ -75,10 +75,25 @@ class LineParser:
             # indented
             if self._inelement:
                 # maybe it's part of the previous element ?
-                if (isinstance(self.elements[-1], elements.Code)
-                    or isinstance(self.elements[-1], elements.ValueDefinition)):
+                def maybepreviouselement(previouselement):
+                    if isinstance(previouselement, elements.Code):
+                        return True
+                    if isinstance(previouselement, elements.ValueDefinition):
+                        return True
+                    if (isinstance(previouselement, elements.UnorderedListItem)
+                        and previouselement.level > 1):
+                        return True
+                    return False
+                if maybepreviouselement(self.elements[-1]):
                     self.elements[-1].addcontent(line)
                     return
+            if (self.elements
+                and isinstance(self.elements[-1], elements.UnorderedListItem)
+                and self.elements[-1].level > 1):
+                # indented paragraph, inside a list
+                self.elements.append(elements.Paragraph(line))
+                self._inelement = True
+                return
             if line[:8].isspace():
                 # code block
                 # we already checked for _inelement
