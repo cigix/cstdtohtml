@@ -65,7 +65,7 @@ class LineParser:
             self._inelement = True
             return
         if line[0] == '−' and utils.isint(line[1:8]):
-            # value definition, but with an unparsable − U+2212 MINUS SIGN
+            # value definition, but with a misunderstood − U+2212 MINUS SIGN
             # instead of - U+002D HYPHEN-MINUS
             self.elements.append(elements.ValueDefinition(line.replace('−',
                                                                        '-')))
@@ -79,6 +79,8 @@ class LineParser:
                     if isinstance(previouselement, elements.Code):
                         return True
                     if isinstance(previouselement, elements.ValueDefinition):
+                        return True
+                    if isinstance(previouselement, elements.OrderedListItem):
                         return True
                     if (isinstance(previouselement, elements.UnorderedListItem)
                         and previouselement.level > 1):
