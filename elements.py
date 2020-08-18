@@ -35,13 +35,13 @@ class Paragraph(Text):
         - content: str, see Text'''
     pass
 
-class NumberedParagraph(Text):
+class NumberedParagraph(Paragraph):
     '''Attributes:
         - number: int, the number associated to the paragraph
         - content: str, see Text'''
     def __init__(self, number, content):
         self.number = number
-        Text.__init__(self, content)
+        Paragraph.__init__(self, content)
 
 class UnorderedListItem(Text):
     '''A member of an unordered list.
@@ -149,27 +149,23 @@ class Code:
         return repr(self.lines)
 
 class ValueDefinition(Text):
-    '''A number associated with a definition.
+    '''A value associated with a definition.
 
     Attributes:
-        - number: int, the number being defined
+        - value: str, the value being defined
         - see Text'''
-    def __init__(self, line):
-        try:
-            (number, content) = line.split(maxsplit=1)
-        except ValueError:
-            print("Could not split line", file=sys.stderr)
-            print(line, file=sys.stderr)
-            raise
-        else:
-            try:
-                self.number = int(number)
-            except ValueError:
-                print("Could not parse value definition", file=sys.stderr)
-                print(line, file=sys.stderr)
-                raise
-            else:
-                Text.__init__(self, content)
+    def __init__(self, value, content):
+        value = value.strip()
+        self.value = value[:-1] if value[-1] == ':' else value
+        Text.__init__(self, content)
 
     def __str__(self):
-        return str(self.number) + ' ' + Text.__str__(self)
+        return self.value + ":\t" + Text.__str__(self)
+
+class NumberedValueDefinition(ValueDefinition):
+    '''Attributes:
+        - number: int, the number associated to the definition
+        - see ValueDefinition'''
+    def __init__(self, number, value, content):
+        self.number = number
+        ValueDefinition.__init__(self, value, content)

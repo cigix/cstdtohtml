@@ -24,6 +24,7 @@ class LineParser:
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
+        previous = self.elements[-1] if self.elements else None
         if line[:20] == "Forward references: ":
             # make it its own paragraph
             self.elements.append(elements.Paragraph(line))
@@ -53,7 +54,7 @@ class LineParser:
             self.elements.append(elements.UnorderedListItem(line))
             self._inelement = True
             return
-        #print(splits, line)
+        #print(splits)
         if splits[0][:-1].isdigit() and splits[0][-1] == '.':
             # ordered list
             self.elements.append(elements.OrderedListItem(line))
@@ -61,18 +62,24 @@ class LineParser:
             return
         if utils.isint(line[:8]):
             # value definition
-            self.elements.append(elements.ValueDefinition(line))
+            self.elements.append(elements.ValueDefinition(*splits))
             self._inelement = True
             return
         if line[0] == '−' and utils.isint(line[1:8]):
             # value definition, but with a misunderstood − U+2212 MINUS SIGN
             # instead of - U+002D HYPHEN-MINUS
-            self.elements.append(elements.ValueDefinition(line.replace('−',
-                                                                       '-')))
+            self.elements.append(
+                    elements.ValueDefinition(splits[0].replace('−', '-'),
+                                             splits[1]))
+            self._inelement = True
+            return
+        if splits[0][:2] == "__" and splits[0][-2:] == "__":
+            # value definition of preprocessing macro
+            self.elements.append(elements.ValueDefinition(*splits))
             self._inelement = True
             return
         if line[:4].isspace():
-            # indented
+            # indented text?
             if self._inelement:
                 # maybe it's part of the previous element ?
                 def maybepreviouselement(previouselement):
@@ -86,12 +93,12 @@ class LineParser:
                         and previouselement.level > 1):
                         return True
                     return False
-                if maybepreviouselement(self.elements[-1]):
-                    self.elements[-1].addcontent(line)
+                if maybepreviouselement(previous):
+                    previous.addcontent(line)
                     return
             if (self.elements
-                and isinstance(self.elements[-1], elements.UnorderedListItem)
-                and self.elements[-1].level > 1):
+                and isinstance(previous, elements.UnorderedListItem)
+                and previous.level > 1):
                 # indented paragraph, inside a list
                 self.elements.append(elements.Paragraph(line))
                 self._inelement = True
@@ -105,9 +112,11 @@ class LineParser:
             # idk, make it a paragraph
 
         # regular text
-        if self._inelement and isinstance(self.elements[-1], elements.Text):
+        if (self._inelement
+            and isinstance(previous, elements.Text)
+            and not isinstance(previous, elements.ValueDefinition)):
             # continuation of previous text element
-            self.elements[-1].addcontent(line)
+            previous.addcontent(line)
             return
         # new paragraph
         self.elements.append(elements.Paragraph(line))

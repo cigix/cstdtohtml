@@ -8,7 +8,7 @@ got.html: c17.pdf *.py
 
 check: got.html ref
 	@head -n $$(wc -l ref | cut -d' ' -f1) got.html > got_trunc
-	@diff -suw ref got_trunc |& less -FS || true
+	@diff --color=always -suw ref got_trunc |& less -FSR || true
 	@rm got_trunc
 
 new_ref: got.html
