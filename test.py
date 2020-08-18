@@ -86,7 +86,7 @@ def main(argv):
     intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
     contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
     contents += [pages.StructuredPage(p, tocmatcher)
-                 for p in contentsupages[1:38]]
+                 for p in contentsupages[1:45]]
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
     for p in contents:

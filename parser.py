@@ -94,7 +94,7 @@ class LineParser:
                 self.elements.append(elements.Paragraph(line))
                 self._inelement = True
                 return
-            if line[:8].isspace():
+            if line[:7].isspace():
                 # code block
                 # we already checked for _inelement
                 self.elements.append(elements.Code(line))
