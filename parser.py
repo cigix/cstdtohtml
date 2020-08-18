@@ -134,7 +134,12 @@ class LineParser:
             print(line, file=sys.stderr)
             raise
         else:
-            self.elements.append(elements.NumberedParagraph(num, line[indent:]))
+            unindented = line[indent:]
+            if unindented[:7].isspace():
+                self.elements.append(elements.NumberedCode(num, unindented))
+            else:
+                self.elements.append(elements.NumberedParagraph(num,
+                                                                unindented))
             self._inelement = True
 
     def parseline(self, line, tocmatcher, forceindent=None):

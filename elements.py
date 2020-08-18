@@ -148,6 +148,14 @@ class Code:
     def __repr__(self):
         return repr(self.lines)
 
+class NumberedCode(Code):
+    '''Attributes:
+        - number: int, the number associated to the code block
+        - lines: list of str, see Code'''
+    def __init__(self, number, content):
+        self.number = number
+        Code.__init__(self, content)
+
 class ValueDefinition(Text):
     '''A value associated with a definition.
 
