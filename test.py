@@ -40,7 +40,7 @@ def main(argv):
     #exit(42)
     unstructuredpages = [pages.Page(p) for p in text.split('\f') if p]
     for i in range(len(unstructuredpages)):
-        with open(f"test_{i}.txt", 'w') as f:
+        with open(f"{i}.txt", 'w') as f:
             f.write('\n'.join(unstructuredpages[i].content))
 
     coverbegin = 0
@@ -86,7 +86,7 @@ def main(argv):
     intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
     contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
     contents += [pages.StructuredPage(p, tocmatcher)
-                 for p in contentsupages[1:45]]
+                 for p in contentsupages[1:65]]
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
     for p in contents:
