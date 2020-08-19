@@ -90,8 +90,13 @@ def main(argv):
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
     for p in contents:
-        print(p)
-        print()
+        p.reindentcodes()
+
+    #for p in contents:
+    #    print(p)
+    #    print()
+
+
 
 if __name__ == '__main__':
     main(sys.argv)

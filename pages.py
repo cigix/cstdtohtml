@@ -11,6 +11,7 @@ CoverPage: a StructuredPage, with a second header and a title
 import re
 import sys
 
+import elements
 import parser
 import utils
 
@@ -152,6 +153,19 @@ class StructuredPage:
                      + '\n\t'.join(f"{e.__class__.__name__:17}{e}" for e in l)
                      for f, l in self.footnotes.items())
         return elements + '\n' + '\n'.join(footnotes)
+
+    def reindentcodes(self):
+        '''reindentcodes(self): Rework the indentation of the code blocks.
+
+        Remove spaces that are present at the beginning of all lines.'''
+        for e in self.elements:
+            if isinstance(e, elements.Code):
+                indents = [len(l) - len(l.lstrip())
+                           for l in e.lines
+                           if l]
+                margin = min(indents)
+                newlines = [l[margin:] for l in e.lines]
+                e.lines = newlines
 
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
