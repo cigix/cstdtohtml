@@ -60,24 +60,27 @@ class LineParser:
             self.elements.append(elements.OrderedListItem(line))
             self._inelement = True
             return
-        if utils.isint(line[:8]):
-            # value definition
-            self.elements.append(elements.ValueDefinition(*splits))
-            self._inelement = True
-            return
-        if line[0] == '−' and utils.isint(line[1:8]):
-            # value definition, but with a misunderstood − U+2212 MINUS SIGN
-            # instead of - U+002D HYPHEN-MINUS
-            self.elements.append(
-                    elements.ValueDefinition(splits[0].replace('−', '-'),
-                                             splits[1]))
-            self._inelement = True
-            return
-        if splits[0][:2] == "__" and splits[0][-2:] == "__":
-            # value definition of preprocessing macro
-            self.elements.append(elements.ValueDefinition(*splits))
-            self._inelement = True
-            return
+        if len(splits) == 2:
+            if line[3].isspace():
+                # maybe value definition with number as value
+                if utils.isint(line[:3]):
+                    # value definition of number
+                    self.elements.append(elements.ValueDefinition(*splits))
+                    self._inelement = True
+                    return
+                if line[0] == '−' and utils.isint(line[1:3]):
+                    # value definition of number, but with a misunderstood −
+                    # U+2212 MINUS SIGN instead of a - U+002D HYPHEN-MINUS
+                    self.elements.append(
+                            elements.ValueDefinition(splits[0].replace('−', '-'),
+                                                     splits[1]))
+                    self._inelement = True
+                    return
+            if splits[0][:2] == "__" and splits[0][-2:] == "__":
+                # value definition of preprocessing macro
+                self.elements.append(elements.ValueDefinition(*splits))
+                self._inelement = True
+                return
         if line[:4].isspace():
             # indented text?
             if self._inelement:
