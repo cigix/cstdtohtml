@@ -103,7 +103,7 @@ class StructuredPage:
             - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
-        footnoteregex = re.compile(fr"^\s+\d+\)\s\S")
+        footnoteregex = re.compile(r"^\s+\d+\)\s\S")
         lineparser = parser.LineParser(page.indent)
         i = startline
         while i < len(page.content):
@@ -146,13 +146,14 @@ class StructuredPage:
             self.footnotes[f] = p.elements
 
     def __repr__(self):
-        elements = '\n'.join(f"{e.__class__.__name__:25}{e}"
-                             for e in self.elements)
-        footnotes = (str(f)
-                     + ')\t'
-                     + '\n\t'.join(f"{e.__class__.__name__:17}{e}" for e in l)
-                     for f, l in self.footnotes.items())
-        return elements + '\n' + '\n'.join(footnotes)
+        elementstr = '\n'.join(f"{e.__class__.__name__:25}{e}"
+                               for e in self.elements)
+        footnotestrs = (str(f)
+                        + ')\t'
+                        + '\n\t'.join(f"{e.__class__.__name__:17}{e}"
+                                      for e in l)
+                        for f, l in self.footnotes.items())
+        return elementstr + '\n' + '\n'.join(footnotestrs)
 
     def reindentcodes(self):
         '''reindentcodes(self): Rework the indentation of the code blocks.

@@ -23,7 +23,6 @@ class LineParser:
 
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
-        groups = utils.groupwords(line)
         previous = self.elements[-1] if self.elements else None
         if line[:20] == "Forward references: ":
             # make it its own paragraph
@@ -72,8 +71,8 @@ class LineParser:
                     # value definition of number, but with a misunderstood −
                     # U+2212 MINUS SIGN instead of a - U+002D HYPHEN-MINUS
                     self.elements.append(
-                            elements.ValueDefinition(splits[0].replace('−', '-'),
-                                                     splits[1]))
+                        elements.ValueDefinition(splits[0].replace('−', '-'),
+                                                 splits[1]))
                     self._inelement = True
                     return
             if splits[0][:2] == "__" and splits[0][-2:] == "__":
@@ -93,15 +92,15 @@ class LineParser:
                     if isinstance(previouselement, elements.OrderedListItem):
                         return True
                     if (isinstance(previouselement, elements.UnorderedListItem)
-                        and previouselement.level > 1):
+                            and previouselement.level > 1):
                         return True
                     return False
                 if maybepreviouselement(previous):
                     previous.addcontent(line)
                     return
             if (self.elements
-                and isinstance(previous, elements.UnorderedListItem)
-                and previous.level > 1):
+                    and isinstance(previous, elements.UnorderedListItem)
+                    and previous.level > 1):
                 # indented paragraph, inside a list
                 self.elements.append(elements.Paragraph(line))
                 self._inelement = True
@@ -116,8 +115,8 @@ class LineParser:
 
         # regular text
         if (self._inelement
-            and isinstance(previous, elements.Text)
-            and not isinstance(previous, elements.ValueDefinition)):
+                and isinstance(previous, elements.Text)
+                and not isinstance(previous, elements.ValueDefinition)):
             # continuation of previous text element
             previous.addcontent(line)
             return
@@ -129,7 +128,8 @@ class LineParser:
     def _parselinewithindent(self, line, indent, tocmatcher):
         if line[:indent].isspace():
             #print(f"{indent}\t|{line[indent:]}")
-            return self._parselinewithoutindent(line[indent:], tocmatcher)
+            self._parselinewithoutindent(line[indent:], tocmatcher)
+            return
         try:
             num = int(line[:indent])
         except:
