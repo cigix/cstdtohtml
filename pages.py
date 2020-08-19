@@ -156,17 +156,71 @@ class StructuredPage:
         return elementstr + '\n' + '\n'.join(footnotestrs)
 
     def reindentcodes(self):
-        '''reindentcodes(self): Rework the indentation of the code blocks.
+        '''reindentcodes(self): Rework the indentation of code blocks.
 
-        Remove spaces that are present at the beginning of all lines.'''
+        Remove spaces that are present at the beginning of all lines in a code
+        block.'''
+        def reindentlines(lines):
+            indents = [len(l) - len(l.lstrip())
+                       for l in lines
+                       if l]
+            margin = min(indents)
+            return [l[margin:] for l in lines]
+
         for e in self.elements:
             if isinstance(e, elements.Code):
-                indents = [len(l) - len(l.lstrip())
-                           for l in e.lines
-                           if l]
-                margin = min(indents)
-                newlines = [l[margin:] for l in e.lines]
-                e.lines = newlines
+                e.lines = reindentlines(e.lines)
+        for footnote, elems in self.footnotes.items():
+            for i, elem in enumerate(elems):
+                if isinstance(elem, elements.Code):
+                    self.footnotes[footnote][i].lines = (
+                        reindentlines(elem.lines))
+
+    def reworkfootnotes(self):
+        '''reworkfootnotes(self): Rework the elements of footnotes.
+
+        Footnotes usually have weird indentation and extraneous empty lines,
+        which may lead to weird parsing. Instead of having specific parsing
+        rules for footnotes, we parse them just like usual content, and fix them
+        with this method.'''
+        for footnote in self.footnotes.keys():
+            if self.footnotes[footnote]:
+                # remove extraneous spacing between the first two words
+                if isinstance(self.footnotes[footnote][0], elements.Paragraph):
+                    splits = (self.footnotes[footnote][0]
+                              .content.split(maxsplit=1))
+                    if len(splits) == 2:
+                        self.footnotes[footnote][0] = (
+                            elements.Paragraph(' '.join(splits)))
+                    else: # only one word in the first paragraph, that's fishy
+                        if isinstance(self.footnotes[footnote][1],
+                                      elements.Code):
+                            lines = self.footnotes[footnote][1].lines
+                            # avoid extra newline with the first line
+                            self.footnotes[footnote][0].content += (' '
+                                                                    + lines[0])
+                            # turn the other lines into paragraphs, they'll get
+                            # sorted out later on
+                            newpars = list()
+                            for line in lines[1:]:
+                                newpars.append(elements.Paragraph(line))
+                            # replace the Code with the Paragraphs
+                            self.footnotes[footnote][1:2] = newpars
+
+                # Merge consecutive paragraphs
+                newelems = list()
+                islastaparagraph = False
+                for elem in self.footnotes[footnote]:
+                    if isinstance(elem, elements.Paragraph):
+                        if islastaparagraph:
+                            newelems[-1].addcontent(elem.content)
+                        else:
+                            newelems.append(elem)
+                            islastaparagraph = True
+                    else:
+                        newelems.append(elem)
+                        islastaparagraph = False
+                self.footnotes[footnote] = newelems
 
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
