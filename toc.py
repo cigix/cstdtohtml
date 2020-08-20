@@ -56,6 +56,8 @@ class TOCMatcher:
             - toc: TOC, the table of contents'''
         def maketitleregex(title, key):
             if key is None:
+                if title[:6] == "Annex ":
+                    return re.compile(fr"^\s+{title[:7]}$")
                 return re.compile(fr"^\s*{title}$")
             if key.count('.') == 0:
                 return re.compile(fr"^\s*{key}\.\s+{title}$")
