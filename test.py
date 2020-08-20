@@ -92,6 +92,8 @@ def main(argv):
     for p in contents:
         p.reindentcodes()
         p.reworkfootnotes()
+        p.fixfootnoterefs()
+        p.putfootnoteplaceholders()
 
     #for p in contents:
     #    print(p)

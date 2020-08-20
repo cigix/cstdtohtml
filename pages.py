@@ -230,6 +230,62 @@ class StructuredPage:
                         islastaparagraph = False
                 self.footnotes[footnote] = newelems
 
+    def fixfootnoterefs(self):
+        '''fixfootnoterefs(self): Fix the contents for a known pattern.
+
+        Sometimes footnote references appear on their separate line above the
+        line they should be on:
+
+                       123)
+            lorem ipsum
+
+        instead of:
+
+            lorem ipsum123)
+
+        This causes the footnote reference to be considered as code, an so does
+        the following line.'''
+        todelete = list()
+        for i in range(1, len(self.elements)):
+            if not isinstance(self.elements[i], elements.Code):
+                continue
+            code = self.elements[i]
+            if not len(code.lines) >= 2:
+                continue
+            if not (utils.isint(code.lines[0][:-1])
+                    and code.lines[0][-1] == ')'):
+                continue
+            if not isinstance(self.elements[i - 1], elements.Text):
+                continue
+            prevtext = self.elements[i - 1]
+            firstline = code.lines[1] + code.lines[0].lstrip()
+            prevtext.addcontent(firstline)
+            for line in code.lines[2:]:
+                prevtext.addcontent(line)
+            todelete.append(i)
+
+        for i in reversed(todelete):
+            self.elements[i:i+1] = []
+
+    def putfootnoteplaceholders(self):
+        r'''putfootnoteplaceholders(self): Replace footnote references with
+        placeholders.
+
+        Match the footnotes with the contents of the page, replacing the
+        references ("<number>)") with placeholders
+        ("\x1bfootnote<number>\x1b").'''
+        for footnote in self.footnotes.keys():
+            regex = re.compile(fr"{footnote}\)")
+            placeholder = f"\x1bfootnote{footnote}\x1b"
+            for elem in self.elements:
+                if not isinstance(elem, elements.Text):
+                    continue
+                if elem.content[:20] == "Forward references: ":
+                    # contains a lot of sequences of the form "<number>)" that
+                    # never are footnotes
+                    continue
+                elem.content = regex.sub(placeholder, elem.content)
+
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
 
