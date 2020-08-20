@@ -206,6 +206,14 @@ class StructuredPage:
                                 newpars.append(elements.Paragraph(line))
                             # replace the Code with the Paragraphs
                             self.footnotes[footnote][1:2] = newpars
+                elif isinstance(self.footnotes[footnote][0],
+                                elements.ValueDefinition):
+                    newparcontent = (
+                        self.footnotes[footnote][0].value
+                        + ' '
+                        + self.footnotes[footnote][0].content)
+                    newpar = elements.Paragraph(newparcontent)
+                    self.footnotes[footnote][0] = newpar
 
                 # Merge consecutive paragraphs
                 newelems = list()
