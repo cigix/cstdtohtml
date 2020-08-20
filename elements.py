@@ -48,6 +48,8 @@ class UnorderedListItem(Text):
 
     Attributes:
         - level: int, 1 if the bullet is '—', 2 if the bullet is '•'
+        - indent: int, the number of spaces to expect at the beginning of
+          similar items
         - see Text'''
     def __init__(self, line):
         try:
@@ -65,6 +67,7 @@ class UnorderedListItem(Text):
                 print("Unknown bullet:", bullet, file=sys.stderr)
                 print(line, file=sys.stderr)
                 raise NotImplementedError
+            self.indent = len(line) - len(line.lstrip())
             Text.__init__(self, content)
 
     def __repr__(self):

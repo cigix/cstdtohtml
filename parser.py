@@ -84,18 +84,20 @@ class LineParser:
             # indented text?
             if self._inelement:
                 # maybe it's part of the previous element ?
-                def maybepreviouselement(previouselement):
+                def maybepreviouselement(previouselement, line):
                     if isinstance(previouselement, elements.Code):
                         return True
                     if isinstance(previouselement, elements.ValueDefinition):
                         return True
                     if isinstance(previouselement, elements.OrderedListItem):
                         return True
-                    if (isinstance(previouselement, elements.UnorderedListItem)
-                            and previouselement.level > 1):
-                        return True
+                    if isinstance(previouselement, elements.UnorderedListItem):
+                        indent = previouselement.indent + 2
+                        if (line[:indent].isspace()
+                                and not line[indent].isspace()):
+                            return True
                     return False
-                if maybepreviouselement(previous):
+                if maybepreviouselement(previous, line):
                     previous.addcontent(line)
                     return
             if (self.elements
