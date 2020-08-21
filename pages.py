@@ -103,7 +103,7 @@ class StructuredPage:
             - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
-        footnoteregex = re.compile(r"^\s+\d+\)\s\S")
+        footnoteregex = re.compile(r"^\s+\d+\)\s?\S")
         lineparser = parser.LineParser(page.indent)
         i = startline
         while i < len(page.content):
@@ -125,9 +125,9 @@ class StructuredPage:
         for line in page.content[footnotesbegin:]:
             try:
                 if footnoteregex.match(line):
-                    footnote, text = line.split(maxsplit=1)
+                    footnote, text = line.split(')', maxsplit=1)
                     try:
-                        footnote = int(footnote[:-1])
+                        footnote = int(footnote)
                     except ValueError:
                         print("Could not parse footnote number",
                               file=sys.stderr)
