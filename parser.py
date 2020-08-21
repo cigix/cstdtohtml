@@ -25,7 +25,7 @@ class LineParser:
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
         previous = self.elements[-1] if self.elements else None
-        if line[:20] == "Forward references: ":
+        if line.lstrip()[:20] == "Forward references: ":
             # make it its own paragraph
             self.elements.append(elements.Paragraph(line))
             self._inelement = True
