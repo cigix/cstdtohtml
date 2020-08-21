@@ -95,11 +95,9 @@ def main(argv):
         p.fixfootnoterefs()
         p.putfootnoteplaceholders()
 
-    #for p in contents:
-    #    print(p)
-    #    print()
+    content = pages.mergepages(contents)
 
-
+    print(content)
 
 if __name__ == '__main__':
     main(sys.argv)

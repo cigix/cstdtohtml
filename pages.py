@@ -8,6 +8,7 @@ StructuredPage: a collection of elements
 CoverPage: a StructuredPage, with a second header and a title
 '''
 
+import copy
 import re
 import sys
 
@@ -307,3 +308,19 @@ class CoverPage(StructuredPage):
         self.subheader = utils.groupwords(page.content[subheaderline])
         self.title = page.content[titleline].strip()
         StructuredPage.__init__(self, page, tocmatcher, titleline + 1)
+
+def mergepages(pages):
+    '''mergepages(pages): Get a single long page from individual pages.
+
+    Parameters:
+        - pages: list of StructuredPage, the pages to merge
+
+    Return: type(pages[0]), the merged pages.'''
+    merge = copy.deepcopy(pages[0])
+    for page in pages[1:]:
+        merge.elements += page.elements
+        for footnote, elems in page.footnotes.items():
+            if footnote in merge.footnotes:
+                raise KeyError(f"Footnote present multiple times: {footnote}")
+            merge.footnotes[footnote] = elems
+    return merge
