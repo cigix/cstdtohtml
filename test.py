@@ -3,6 +3,7 @@
 import subprocess
 import sys
 
+import linker
 import pages
 import utils
 from abstract import Abstract
@@ -95,8 +96,22 @@ def main(argv):
         p.fixfootnoterefs()
         p.putfootnoteplaceholders()
 
+    covermerged = pages.mergepages(cover)
+    forewordmerged = pages.mergepages(foreword)
+    intromerged = pages.mergepages(intro)
     content = pages.mergepages(contents)
+    bibliomerged = pages.mergepages(biblio)
 
+    linker.putlinksplaceholders(covermerged.elements)
+    linker.putlinksplaceholders(forewordmerged.elements)
+    linker.putlinksplaceholders(intromerged.elements)
+    linker.putlinksplaceholders(content.elements)
+    for elems in content.footnotes.values():
+        linker.putlinksplaceholders(elems)
+    linker.putlinksplaceholders(bibliomerged.elements)
+
+    print(forewordmerged)
+    print(intromerged)
     print(content)
 
 if __name__ == '__main__':
