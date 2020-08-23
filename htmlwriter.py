@@ -275,3 +275,49 @@ class DOMEater:
         self.body.add(Tag(0, "p", htmlformat(abstract.noteline.strip())))
         for elem in abstract.elements:
             self.body.add(Tag(0, "p", htmlformat(elem.content)))
+
+    def eattoc(self, toc):
+        '''eattoc(self, toc): Eat a TOC.
+
+        Turn a toc.TOC into HTML tags.'''
+        title = htmlformat(toc.titleline.strip())
+        self.body.add(Tag(0, f'h1 id="{title}"',
+                          f'<a href="#{title}">{title}</a>'))
+        main = Tag(0, "ul", list())
+        self.body.add(main)
+        # list of tuple (str, Tag), the hierachical stack of ul Tags. A key with
+        # n dots is a child of levels[n][1]
+        levels = [(None, main)]
+        lastli = None
+        for title, key in toc.titles:
+            if key is None:
+                if title[:6] == "Annex ":
+                    key = title[6]
+                    li = Tag(1, "li", f'<a href="#{key}">{title}</a>')
+                    lastli = li
+                else:
+                    li = Tag(1, "li", f'<a href="#{title}">{title}</a>')
+                    lastli = None
+                main.add(li)
+                levels[1:] = []
+            else:
+                level = key.count('.')
+                li = Tag(level * 2 - 1, "li",
+                         f'{key} <a href="#{key}">{htmlformat(title)}</a>')
+                if level == len(levels):
+                    # one deeper than the last
+                    ul = Tag(level * 2 - 2, "ul", li)
+                    lastli.add(ul)
+                    lastkey = lastli.contents[0].split(maxsplit=1)[0]
+                    levels.append((lastkey, ul))
+                    lastli = li
+                elif level < len(levels):
+                    # same level or higher that last
+                    levels[level + 1:] = []
+                    levels[level][1].add(li)
+                    lastli = li
+                else:
+                    print("Invalid TOC hierarchy", file=sys.stderr)
+                    print("Entry:", key, title, file=sys.stderr)
+                    print("Levels len:", len(levels), file=sys.stderr)
+                    raise ValueError

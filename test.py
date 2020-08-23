@@ -121,6 +121,7 @@ def main(argv):
 
     dom.eat(covermerged)
     dom.eatabstract(abstract)
+    dom.eattoc(toc)
     dom.eat(forewordmerged)
     dom.eat(intromerged)
     dom.eat(content)
