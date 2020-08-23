@@ -2,9 +2,11 @@
 
 Defines LineParser, an object that turns lines into elements.'''
 
+import re
 import sys
 
 import elements
+import toc
 import utils
 
 class LineParser:
@@ -32,7 +34,8 @@ class LineParser:
             return
         #print(tocmatcher._titlestack[-1], tocmatcher._headingstack[-1], line, sep='\t')
         if tocmatcher.matchtitle(line):
-            if splits[0][0].isdigit():
+            if (re.match(toc.KEYREGEX, splits[0])
+                    or re.match(fr"{toc.CHAPTERREGEX}\.", splits[0])):
                 # numbered title
                 self.elements.append(elements.NumberedTitleHeading(line))
             else:
