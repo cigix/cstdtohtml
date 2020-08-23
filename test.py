@@ -3,6 +3,7 @@
 import subprocess
 import sys
 
+import htmlwriter
 import linker
 import pages
 import utils
@@ -110,9 +111,17 @@ def main(argv):
         linker.putlinksplaceholders(elems)
     linker.putlinksplaceholders(bibliomerged.elements)
 
+    print(covermerged)
     print(forewordmerged)
     print(intromerged)
     print(content)
+    print(bibliomerged)
+
+    dom = htmlwriter.DOMEater()
+
+    dom.eat(forewordmerged)
+    dom.eat(intromerged)
+    dom.eat(content)
 
 if __name__ == '__main__':
     main(sys.argv)
