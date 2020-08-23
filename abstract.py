@@ -19,7 +19,7 @@ class Abstract:
         self.noteline = contents[1]
         self.elements = list()
         for line in contents[2:]:
-            if line[:4] == "    ":
+            if line[:8].isspace():
                 self.elements.append(elements.Paragraph(line))
             else:
                 self.elements[-1].addcontent(line)

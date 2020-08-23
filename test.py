@@ -119,9 +119,12 @@ def main(argv):
 
     dom = htmlwriter.DOMEater()
 
+    dom.eat(covermerged)
+    dom.eatabstract(abstract)
     dom.eat(forewordmerged)
     dom.eat(intromerged)
     dom.eat(content)
+    dom.eat(bibliomerged)
 
 if __name__ == '__main__':
     main(sys.argv)

@@ -264,3 +264,14 @@ class DOMEater:
 
             raise ValueError(
                 f"Unknown type of element: {elem.__class__.__name__}")
+
+    def eatabstract(self, abstract):
+        '''eatabstract(self, abstract): Eat an Abstract.
+
+        Read all the elements of the page and turn them into HTML tags.'''
+        title = htmlformat(abstract.titleline.strip())
+        self.body.add(Tag(0, f'h1 id="{title}"',
+                          f'<a href="#{title}">{title}</a>'))
+        self.body.add(Tag(0, "p", htmlformat(abstract.noteline.strip())))
+        for elem in abstract.elements:
+            self.body.add(Tag(0, "p", htmlformat(elem.content)))
