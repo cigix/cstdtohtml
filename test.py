@@ -111,12 +111,6 @@ def main(argv):
         linker.putlinksplaceholders(elems)
     linker.putlinksplaceholders(bibliomerged.elements)
 
-    print(covermerged)
-    print(forewordmerged)
-    print(intromerged)
-    print(content)
-    print(bibliomerged)
-
     dom = htmlwriter.DOMEater()
 
     dom.eat(covermerged)
@@ -126,6 +120,8 @@ def main(argv):
     dom.eat(intromerged)
     dom.eat(content)
     dom.eat(bibliomerged)
+
+    print(dom.tohtml())
 
 if __name__ == '__main__':
     main(sys.argv)

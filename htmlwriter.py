@@ -80,6 +80,21 @@ class Tag:
                     res += "\n  " + line
         return res
 
+    def tohtml(self):
+        res = '<' + self.tag
+        if self.attributes is not None:
+            res += ' ' + self.attributes
+        res += ">\n"
+        for content in self.contents:
+            if isinstance(content, Tag):
+                string = content.tohtml()
+            else:
+                string = content
+            for line in string.splitlines():
+                res += "  " + line + '\n'
+        res += "</" + self.tag + ">\n"
+        return res
+
 class DOMEater:
     '''Attributes:
         - key: str, the last key seen
@@ -321,3 +336,6 @@ class DOMEater:
                     print("Entry:", key, title, file=sys.stderr)
                     print("Levels len:", len(levels), file=sys.stderr)
                     raise ValueError
+
+    def tohtml(self):
+        return self.body.tohtml()
