@@ -9,6 +9,7 @@ import sys
 
 import elements
 import pages
+import toc
 
 def htmlformat(string, newlines=True):
     '''format(string): Replace placeholders and special characters.
@@ -29,6 +30,10 @@ def htmlformat(string, newlines=True):
                     string)
     string = re.sub("\x1blinkhttp(.*?)\x1b",
                     r'<a href="http\g<1>">http\g<1></a>', string)
+    string = re.sub(f"(annex\\s)\x1blink({toc.ANNEXREGEX})\x1b",
+                    r'<a href="#\g<2>">\g<1>\g<2></a>', string)
+    string = re.sub(f"(clause\\s)\x1blink({toc.CHAPTERREGEX})\x1b",
+                    r'<a href="#\g<2>">\g<1>\g<2></a>', string)
     string = re.sub("\x1blink(.*?)\x1b", r'<a href="#\g<1>">\g<1></a>', string)
     return string
 
@@ -280,11 +285,11 @@ def eatAbstract(root, abstract):
     for elem in abstract.elements:
         root.add(Tag("p", htmlformat(elem.content)))
 
-def eatTOC(root, toc):
-    '''eatTOC(root, toc): Eat a TOC.
+def eatTOC(root, t):
+    '''eatTOC(root, t): Eat a TOC.
 
     Turn a toc.TOC into HTML tags.'''
-    title = htmlformat(toc.titleline.strip())
+    title = htmlformat(t.titleline.strip())
     root.add(Tag(f'h1 id="{title}"', f'<a href="#{title}">{title}</a>'))
     main = Tag("ul")
     root.add(main)
@@ -292,7 +297,7 @@ def eatTOC(root, toc):
     # n dots is a child of levels[n][1]
     levels = [(None, main)]
     lastli = None
-    for title, key in toc.titles:
+    for title, key in t.titles:
         if key is None:
             if title[:6] == "Annex ":
                 key = title[6]
