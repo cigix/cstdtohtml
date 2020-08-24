@@ -1,596 +1,158 @@
 #!/usr/bin/env python3
 
-import html
-import os.path
-import re
+import os
 import subprocess
 import sys
 
-# Various HTML tags
-TAG = ["html", "body", "p", "ul", "ol", "li", "pre", "dl", "dd"]
-# Modes
-HTML = TAG.index("html")
-BODY = TAG.index("body")
-P = TAG.index("p")
-UL = TAG.index("ul")
-OL = TAG.index("ol")
-LI = TAG.index("li")
-DL = TAG.index("dl")
-DD = TAG.index("dd")
-PRE = TAG.index("pre")
-# These modes cannot contain text, you must get out of them before writing
-NOTEXT = {UL, OL, DL, PRE}
-# These modes cannot contain text but you should not get out of them either, you
-# should open a P
-NOOUT = {HTML, BODY}
+import htmlwriter
+import linker
+import pages
+import utils
+from abstract import Abstract
+from toc import TOC, TOCMatcher
 
-def groupwords(string: str):
-    '''groupwords(string: str): Split a string into groups of words.
+def pdftotext(file):
+    '''pdftotext(file): Run the file through `pdftotext -layout`.
 
-Return a list of all the substrings of s with no more than one space between
-non-spaces.
-'''
-    # Split into groups of words, remove empty groups, remove leading spaces
-    return list(map(str.lstrip, filter(None, string.split("  "))))
+    If the subprocess fails, its stderr gets printed to stderr, and its return
+    status is passed to sys.exit().
 
-def isint(string: str):
-    '''isint(string: str): Check if a string parses to a number.
+    Parameters:
+        - file: str, path to the PDF file
 
-Return False if `int(string)` raises ValueException, otherwise True.
-'''
-    # Replace MINUS SIGN with HYPHEN-MINUS
-    string = string.replace('−', '-')
-    try:
-        int(string)
-    except ValueError:
-        return False
-    return True
+    Return: str, stdout of the subprocess.'''
+    process = subprocess.run(["pdftotext", "-layout", file, "-"],
+                             capture_output=True, text=True)
+    if process.returncode != 0:
+        print(process.stderr, end='', file=sys.stderr)
+        sys.exit(process.returncode)
+    return process.stdout
+
+def texttohtml(text):
+    '''texttohtml(text): Turn the PDF text into HTML.
+
+    Parse the text into pages, then elements, then turn them into HTML tags.
+
+    Parameters:
+        - text: str, the text of the PDF
+
+    Return: str, a HTML document'''
+    unstructuredpages = [pages.Page(p) for p in text.split('\f') if p]
+    isostd = utils.groupwords(unstructuredpages[0].header)[2]
+
+    coverbegin = 0
+    # The cover and the first page of content have a common subheader
+    front_header = utils.groupwords(unstructuredpages[coverbegin].content[0])
+    abstractbegin = coverbegin + 1
+    while unstructuredpages[abstractbegin].content[0].lstrip() != "Abstract":
+        abstractbegin += 1
+    tocbegin = abstractbegin + 1
+    while unstructuredpages[tocbegin].content[0].lstrip() != "Contents":
+        tocbegin += 1
+    forewordbegin = tocbegin + 1
+    while unstructuredpages[forewordbegin].content[0].lstrip() != "Foreword":
+        forewordbegin += 1
+    introbegin = forewordbegin + 1
+    while unstructuredpages[introbegin].content[0].lstrip() != "Introduction":
+        introbegin += 1
+    contentsbegin = introbegin + 1
+    while (utils.groupwords(unstructuredpages[contentsbegin].content[0])
+           != front_header):
+        contentsbegin += 1
+    bibliobegin = contentsbegin + 1
+    while unstructuredpages[bibliobegin].content[0].lstrip() != "Bibliography":
+        bibliobegin += 1
+    indexbegin = bibliobegin + 1
+
+    coverupages = unstructuredpages[coverbegin:abstractbegin]
+    abstractupages = unstructuredpages[abstractbegin:tocbegin]
+    tocupages = unstructuredpages[tocbegin:forewordbegin]
+    forewordupages = unstructuredpages[forewordbegin:introbegin]
+    introupages = unstructuredpages[introbegin:contentsbegin]
+    contentsupages = unstructuredpages[contentsbegin:bibliobegin]
+    biblioupages = unstructuredpages[bibliobegin:indexbegin]
+
+    abstract = Abstract(abstractupages)
+    toc = TOC(tocupages)
+    tocmatcher = TOCMatcher(toc)
+
+    # Structured pages
+    cover = [pages.CoverPage(coverupages[0], tocmatcher)]
+    cover += [pages.StructuredPage(p, tocmatcher) for p in coverupages[1:]]
+    foreword = [pages.StructuredPage(p, tocmatcher) for p in forewordupages]
+    intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
+    contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
+    contents += [pages.StructuredPage(p, tocmatcher)
+                 for p in contentsupages[1:]]
+    biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
+
+    for p in contents:
+        p.reindentcodes()
+        p.reworkfootnotes()
+        p.fixfootnoterefs()
+        p.putfootnoteplaceholders()
+
+    covermerged = pages.mergepages(cover)
+    forewordmerged = pages.mergepages(foreword)
+    intromerged = pages.mergepages(intro)
+    content = pages.mergepages(contents)
+    bibliomerged = pages.mergepages(biblio)
+
+    linker.putlinksplaceholders(covermerged.elements)
+    linker.putlinksplaceholders(forewordmerged.elements)
+    linker.putlinksplaceholders(intromerged.elements)
+    linker.putlinksplaceholders(content.elements)
+    for elems in content.footnotes.values():
+        linker.putlinksplaceholders(elems)
+    linker.putlinksplaceholders(bibliomerged.elements)
+
+    # HTML
+    header = htmlwriter.Tag("header", [htmlwriter.Tag("div", h)
+                                       for h in front_header])
+    body = htmlwriter.Tag("body", header)
+
+    htmlwriter.eatStructuredPage(body, covermerged)
+    htmlwriter.eatAbstract(body, abstract)
+    htmlwriter.eatTOC(body, toc)
+    htmlwriter.eatStructuredPage(body, forewordmerged)
+    htmlwriter.eatStructuredPage(body, intromerged)
+    htmlwriter.eatStructuredPage(body, content)
+    htmlwriter.eatStructuredPage(body, bibliomerged)
+    htmlwriter.eatfootnotes(body, content.footnotes)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<!-- This document was generated automatically by cstdtohtml -->
+<head>
+  <meta charset="utf-8">
+  <title>{isostd}</title>
+</head>
+{body.tohtml()}
+</html>
+"""
+
+    return html
 
 def main(argv):
     usagestr = ("Usage: " + os.path.basename(argv[0]) +
                 " <C Standard Draft PDF file> [output HTML file]")
     if not 1 < len(argv) < 4:
         print(usagestr, file=sys.stderr)
-        sys.exit(1)
+        return 1
     if argv[1] in ["-h", "-help", "--help"]:
         print(usagestr)
-        sys.exit(0)
+        return 0
     inputfile = argv[1]
     if len(argv) == 3:
         outputfile = argv[2]
     else:
         outputfile = os.path.splitext(inputfile)[0] + ".html"
 
-    process = subprocess.run(["pdftotext", "-layout", inputfile, "-"],
-                             capture_output=True, text=True)
-    if process.returncode != 0:
-        print(process.stderr, end='', file=sys.stderr)
-        sys.exit(process.returncode)
-
-    rawlines = process.stdout.split('\n') # keep \f to detect page breaks
-    lines = list()
-    # regex for refs
-    annexregex = r"[A-Z]\b"
-    chapterregex = r"\d+"
-    keyregex = fr"(({chapterregex})|({annexregex}))(\.\d+)+"
-    # matches '(key)' and '(see key)'
-    parenrefre = re.compile(fr"""(?: # non-catching group
-                                  (?<= # look-behind
-                                   \(
-                                  )
-                                  |
-                                  (?<= # look-behind
-                                   \(see\ # there's a space here
-                                  )
-                                 )
-                                 ( # group 1, the key
-                                  {keyregex}
-                                 )
-                                 (?= # look-ahead
-                                  \)
-                                 )""", re.X)
-    # matches '[key]'
-    bracketrefre = re.compile(fr"""(?<= # look-behind
-                                    \[
-                                   )
-                                   ( # group 1, the key
-                                    {keyregex}
-                                   )
-                                   (?= # look-ahead
-                                    \]
-                                   )""", re.X)
-    # matches 'by key', 'in key', and 'see key'
-    inrefre = re.compile(fr"""(?: # non-catching group
-                               \b
-                               # look-behinds
-                               (?<=by\ )
-                               | (?<=in\ )
-                               | (?<=[Ss]ee\ )
-                              )
-                              ( # group 1, the key
-                               {keyregex}
-                              )""", re.X)
-    annexrefre = re.compile(fr"""( # group 1, the text
-                                  \b annex\ # there's a space here
-                                  ( # group 2, the key
-                                   {annexregex}
-                                  )
-                                 )""", re.X)
-    clauserefre = re.compile(fr"""( # group 1, the text
-                                   \b clause\ # there's a space here
-                                   ( # group 2, the key
-                                    {chapterregex}
-                                   )
-                                  )""", re.X)
-    def refrepl(match):
-        key = match.group(1)
-        return f'<a href="#{key}">{key}</a>'
-    def chapterrefrepl(match):
-        key = match.group(2)
-        return f'<a href="#{match.group(2)}">{match.group(1)}</a>'
-
-    # Preprocessing of text file
-    for rawline in rawlines:
-        # criteria of exclusion:
-        # * successive empty lines, except at page break
-        # * footer before page break
-        # * header after page break
-        # * empty line before nested list
-        if rawline:
-            if rawline[0] == '\f':
-                # page break
-                lines[-1] = "" # replace previous line with empty line
-                continue # exclude this line
-            elif rawline.split(maxsplit=1)[0] == '•':
-                # nested list
-                if not lines[-1]:
-                    lines.pop()
-        else:
-            if not lines[-1]:
-                continue # exclude this second empty line
-
-        # IDK what those are doing in here
-        nocontrolline = (rawline
-                .replace('\x03', '☐')
-                .replace('\x06', '')
-                .replace('\x07', ''))
-
-        escapedline = html.escape(nocontrolline)
-        refedline = (
-                annexrefre.sub(chapterrefrepl,
-                    clauserefre.sub(chapterrefrepl,
-                        inrefre.sub(refrepl,
-                            bracketrefre.sub(refrepl,
-                                parenrefre.sub(refrepl, escapedline))))))
-        lines.append(refedline)
-
-    with open(".cstdtohtml_raw", 'w') as f:
-        f.write('\0\n\0'.join(lines))
-
-    headerline = lines[0]
-    header = groupwords(headerline)
-    _standard, _ballot, isostd = header
-
-    titleheaderline = lines[2]
-    titleheader = groupwords(titleheaderline)
-
-    titleline = lines[4].strip()
-
+    text = pdftotext(inputfile)
+    html = texttohtml(text)
     with open(outputfile, "wt") as out:
-        out.write(
-f"""<!DOCTYPE html>
-<html lang="en">
-<!-- This document was generated automatically by cstdtohtml -->
-<head>
-    <meta charset="utf-8">
-    <title>{isostd}</title>
-</head>
-<body>
-""")
-
-        out.write("<header>")
-        for words in titleheader:
-            out.write(f"<div>{words}</div>")
-        out.write("</header>\n")
-
-        out.write(f"<h1>{titleline}</h1>\n")
-
-        modestack = [HTML, BODY]
-        def newmode(mode):
-            modestack.append(mode)
-            out.write(f"<{TAG[mode]}>\n")
-        def endmode():
-            mode = modestack.pop()
-            out.write(f"</{TAG[mode]}>\n")
-        def backtobody():
-            while 2 < len(modestack):
-                endmode()
-
-        i = 5
-        in_abstract = False
-        in_toc = False
-        in_biblio = False
-        toclevel = None
-        parkey = None # prefix for the paragraph anchors
-        usedparkeys = set()
-        def inserttitle(level, key, title, newparkey = True):
-            nonlocal parkey
-            backtobody()
-            out.write(f'<h{level} id="{key}">'
-                      f'<a href="#{key}">{title}</a></h{level}>\n')
-            if newparkey:
-                parkey = key
-                usedparkeys = set()
-        def parsenumberedtitle(line):
-            split = line.split(maxsplit=1)
-            if len(split) == 1:
-                # numbers only
-                key = title = split[0]
-            else:
-                # numbers + title
-                key = split[0]
-                title = line.lstrip()
-                # remove trailing dot
-                if key[-1] == '.':
-                    key = key[:-1]
-            level = key.count('.') + 1
-            inserttitle(level, key, title)
-        def insertparagraph(line):
-            while modestack[-1] in NOTEXT:
-                endmode()
-            if modestack[-1] in NOOUT:
-                newmode(P)
-            out.write(line + '\n')
-        def insertnumberedparagraph(line):
-            split = line.split(maxsplit=1)
-            if len(split) == 1:
-                # only the number (happens when paragraph starts
-                # with a code block, for example)
-                parnum = line
-                text = ""
-            else:
-                parnum, text = split
-            # sanity check
-            if not isint(parnum):
-                print("Wrong number", i, line, modestack)
-                sys.exit(1)
-            key = f"{parkey}.p{parnum}"
-            if parkey is None:
-                print("No parkey", i, line, modestack)
-                sys.exit(1)
-            if parnum == "0" or key in usedparkeys:
-                # probably not a numbered paragraph, use normal paragraph
-                insertparagraph(line)
-                return
-            backtobody()
-            modestack.append(P)
-            out.write(f'<p id="{key}">\n')
-            out.write(f'<a href="#{key}">{parnum}</a> ')
-            usedparkeys.add(key)
-            if text and text[0] == '—':
-                # This is actually the beginning of an unordered list
-                endmode()
-                newmode(UL)
-                newmode(LI)
-                text = text[2:]
-            out.write(text + '\n')
-
-        while i < len(lines):
-            mode = modestack[-1]
-            if mode in NOOUT:
-                mode = None # we do not need to exit body to change mode
-
-            line = lines[i]
-            split = line.split(maxsplit=1)
-            if in_biblio:
-                if not line:
-                    if not lines[i + 1]:
-                        # end of biblio
-                        in_biblio = False
-                        backtobody()
-                        i += 1
-                    else:
-                        # end of item
-                        endmode()
-                elif re.fullmatch("\d+\.", split[0]):
-                    # new item
-                    if mode != OL:
-                        endmode()
-                    newmode(LI)
-                    out.write(split[1] + '\n')
-                else:
-                    # continuation of previous item
-                    out.write(line.strip() + '\n')
-            elif line:
-                groups = groupwords(line)
-                if groups == titleheader:
-                    # there's a second title header at the beginning of
-                    # contents, ignore it
-                    i += 3
-                    continue
-                if in_abstract:
-                    out.write("<br>\n")
-                    out.write(line)
-                elif line == "Contents":
-                    if mode is not None:
-                        print("Contents but mode", i, line, modestack)
-                        sys.exit(1)
-                    in_toc = True
-                    out.write(f"<h2>{line}</h2>\n")
-                    newmode(UL)
-                elif line == "Index":
-                    inserttitle(1, "Index", "Index")
-                    newmode(P)
-                    out.write(
-"""<i>This is too complicated to parse and turn into usable HTML, you can use
-Ctrl+F. Also, since I don't parse the Index, I can only assume there's nothing
-else after it. End of translation.</i>""")
-                    i = len(lines)
-                elif in_toc:
-                    if line[:6] == "Annex ":
-                        # title SP+ page
-                        while 3 < len(modestack):
-                            endmode() # back to bottom UL
-                        title = groups[0]
-                        key = line[6]
-                        newmode(LI)
-                        out.write(f'<a href="#{key}">{title}</a>\n')
-                        toclevel = 1
-                    elif line[0].isalpha():
-                        # title SP+ page
-                        while 3 < len(modestack):
-                            endmode() # back to bottom UL
-                        title = groups[0]
-                        newmode(LI)
-                        out.write(f'<a href="#{title}">{title}</a>\n')
-                        toclevel = 1
-                    elif line[0].isdigit():
-                        # number SP+ title SP+ page
-                        while 3 < len(modestack):
-                            endmode() # back to bottom UL
-                        key, title, _ = groupwords(line)
-                        # sanity check
-                        if not isint(key):
-                            print("Key not int", i, line, modestack)
-                            sys.exit(1)
-                        newmode(LI)
-                        out.write(f'{key} <a href="#{key}">{title}</a>\n')
-                        toclevel = 1
-                    elif line[0] == ' ':
-                        # SP+ number(.number)+ SP* title (. )+ SP* page
-                        # since we ignore the page we split on spaces then dots
-                        groups = line.lstrip().split(maxsplit=1)
-                        if len(groups) == 1:
-                            # oops, not TOC anymore
-                            in_toc = False
-                            backtobody()
-                            continue # try again
-                        key_str = groups[0]
-                        title = groups[1].split(' .', maxsplit=1)[0]
-                        # no int check because of annexes
-                        key_list = key_str.split('.')
-                        chaplevel = len(key_list)
-                        if toclevel < chaplevel:
-                            # we are deeper
-                            newmode(UL)
-                            newmode(LI)
-                            out.write('{0} <a href="#{0}">{1}</a>\n'
-                                      .format(key_str, title))
-                            toclevel = chaplevel
-                        elif toclevel == chaplevel:
-                            # sibling item
-                            endmode() # LI
-                            newmode(LI)
-                            out.write('{0} <a href="#{0}">{1}</a>\n'
-                                      .format(key_str, title))
-                        else: # len(chapter) < toclevel
-                            # we are shallower, we must go up some levels!
-                            while chaplevel < toclevel:
-                                endmode() # LI
-                                endmode() # UL
-                                toclevel -= 1
-                            # we are back to sibling item
-                            endmode() # LI
-                            newmode(LI)
-                            out.write('{0} <a href="#{0}">{1}</a>\n'
-                                      .format(key_str, title))
-                    else:
-                        print("Unidentified TOC entry", i, line, modestack)
-                        sys.exit(1)
-                elif (2 <= len(split)
-                        and re.fullmatch(keyregex, split[0])
-                        and split[1][0].isupper()):
-                    # numbered title
-                    parsenumberedtitle(line)
-                elif line[0] == ' ':
-                    # indented line, but what could it be?
-                    if groups[0][0] == '—':
-                        # list element
-                        if mode == LI:
-                            # already in a list, must close previous item
-                            endmode()
-                        elif mode != UL:
-                            # not in a list, must work back to top level
-                            backtobody()
-                            newmode(UL)
-                        newmode(LI)
-                        # skip spaces and dash
-                        out.write(line.lstrip()[2:] + '\n')
-                    elif groups[0][0] == '•' and mode == LI:
-                        # nested list element
-                        if len(modestack) < 5:
-                            # First element in the nested list
-                            newmode(UL)
-                        else:
-                            endmode() # close previous item
-                        newmode(LI)
-                        out.write(split[1] + '\n')
-                    elif groups[0] == "Abstract":
-                        in_abstract = True
-                        modestack.append(P)
-                        out.write('<p id="abstract">\n')
-                        out.write(line)
-                    elif groups[0][:6] == "Annex ":
-                        # annex header
-                        key = groups[0][6]
-                        title = (line.strip()
-                                + ' ' + lines[i + 1].strip()
-                                + ' ' + lines[i + 2].strip())
-                        inserttitle(1, key, title)
-                        i += 2
-                    elif groups[0] == "Bibliography":
-                        inserttitle(1, "Bibliography", "Bibliography")
-                        newmode(OL)
-                        i += 1
-                        in_biblio = True
-                    elif (line[:14].isspace()
-                            and mode == UL
-                            and 3 < len(modestack)):
-                        # Continuation of LI after UL
-                        endmode()
-                        out.write(line.strip() + '\n')
-                    elif line[:11].isspace() and (mode is None or mode == P):
-                        # code
-                        if mode != PRE:
-                            backtobody()
-                            newmode(PRE)
-                        out.write(line + '\n')
-                    elif (line[:4].isspace()
-                            and split[0][:-1].isdigit()
-                            and split[0][-1] == ')'):
-                        # footnote
-                        # I have no way of linking to the footnote
-                        backtobody()
-                        modestack.append(P)
-                        out.write('<p class="footnote">\n')
-                        out.write(line.lstrip())
-                        # No idea why, but sometimes there's an empty line in
-                        # the middle of the footnote.
-                        if not lines[i + 1]:
-                            i += 1
-                        # Also no idea why, sometimes they get really weird
-                        # indentation.
-                        j = 1
-                        while lines[i + j]:
-                            lines[i + j] = " " * 4 + lines[i + j].lstrip()
-                            j += 1
-                    elif (line[:5].isspace()
-                            and split[0][:-1].isdigit()
-                            and split[0][-1] == '.'):
-                        # ordered list element
-                        pos = split[0][:-1]
-                        elem = split[1]
-                        if mode == LI:
-                            endmode()
-                        if modestack[-1] != OL:
-                            backtobody()
-                            if pos == 1:
-                                newmode(OL)
-                            else:
-                                modestack.append(OL)
-                                out.write(f'<ol start={pos}>\n')
-                        newmode(LI)
-                        # skip spaces and dash
-                        out.write(elem + '\n')
-                    elif (1 < len(split)
-                            and line[:5].isspace()
-                            and isint(groups[0])):
-                        # values list
-                        if mode == DD:
-                            endmode()
-                        else:
-                            backtobody()
-                            newmode(DL)
-                        out.write(f"<dt>{split[0]}</dt>")
-                        newmode(DD)
-                        out.write(split[1] + '\n')
-                    elif (1 < len(split)
-                            and isint(split[0])
-                            and not line[:8].isspace()):
-                        # numbered paragraph, with indent somehow
-                        insertnumberedparagraph(line)
-                    elif mode == PRE and line[:8].isspace():
-                        # continuation of PRE
-                        out.write(line + '\n')
-                    elif len(groups) == 2 and re.fullmatch(keyregex, groups[0]):
-                        # numbered title
-                        parsenumberedtitle(line)
-                    elif mode is not None and mode not in NOTEXT:
-                        # continuation of a multiline element
-                        # up to 8 leading spaces
-                        out.write("<br>\n" + line.lstrip() + '\n')
-                    elif len(groups) == 1:
-                        group = groups[0]
-                        if (re.fullmatch("\d+\.", split[0])
-                                or re.fullmatch(keyregex, split[0])):
-                            # numbered title
-                            parsenumberedtitle(group)
-                        elif line[:8].isspace() and (mode is None
-                                                     or mode == UL):
-                            # sometimes code in lists gets the wrong indentation
-                            backtobody()
-                            newmode(PRE)
-                            out.write(line + '\n')
-                        elif (group[0].isupper()
-                                and group.count(' ') < 2
-                                and not line[:6].isspace()):
-                            # title
-                            if parkey and re.fullmatch(keyregex, parkey):
-                                # subtitle in a numbered section
-                                anchor = group.replace(' ', '_')
-                                inserttitle(6, parkey + '.' + anchor, group,
-                                            False)
-                            else:
-                                # big title, like Introduction
-                                inserttitle(1, group, group)
-                        else:
-                            # probably a paragraph lost to a page break or code
-                            backtobody()
-                            newmode(P)
-                            out.write(line.lstrip() + '\n')
-                    elif line[:8].isspace() and (mode is None or mode == UL):
-                        # sometimes code in lists gets the wrong indentation
-                        backtobody()
-                        newmode(PRE)
-                        out.write(line + '\n')
-                    elif groups[0][0] == '#':
-                        # code with wrong indentation
-                        # hotfix it to >=11 spaces indent
-                        curspaces = 1
-                        while line[:curspaces + 1].isspace():
-                            curspaces += 1
-                        addindent = ' ' * (11 - curspaces)
-                        j = 0
-                        while lines[i + j]:
-                            lines[i + j] = addindent + lines[i + j]
-                            j += 1
-                        continue
-                    elif groups[0][:4] == "&lt;" or len(groups) in (2, 3, 5):
-                        # weirdly formatted list
-                        backtobody()
-                        newmode(P)
-                        out.write(line.strip() + '\n')
-                    else:
-                        print("indented", i, groups, modestack)
-                        sys.exit(1)
-                else:
-                    if line[0].isdigit():
-                        # numbered paragraph
-                        insertnumberedparagraph(line)
-                    else:
-                        insertparagraph(line)
-            elif in_abstract:
-                out.write('\n')
-                endmode()
-                in_abstract = False
-            elif mode is not None and not in_toc:
-                endmode()
-            i += 1
-
-        while modestack:
-            endmode()
-
-    print(f"Sucessfully written {outputfile}")
+        out.write(html)
+    return 0
 
 if __name__ == '__main__':
-    main(sys.argv)
+    sys.exit(main(sys.argv))
