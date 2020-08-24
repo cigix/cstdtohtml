@@ -226,6 +226,10 @@ class StructuredPage:
                         else:
                             newelems.append(elem)
                             islastaparagraph = True
+                    elif (islastaparagraph
+                          and isinstance(elem, elements.UnorderedListItem)):
+                        # An U+2014 EM DASH has been mistaken for a list item
+                        newelems[-1].addcontent("— " + elem.content)
                     else:
                         newelems.append(elem)
                         islastaparagraph = False

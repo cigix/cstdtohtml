@@ -111,17 +111,19 @@ def main(argv):
         linker.putlinksplaceholders(elems)
     linker.putlinksplaceholders(bibliomerged.elements)
 
-    dom = htmlwriter.DOMEater()
+    # HTML
+    body = htmlwriter.Tag("body")
 
-    dom.eat(covermerged)
-    dom.eatabstract(abstract)
-    dom.eattoc(toc)
-    dom.eat(forewordmerged)
-    dom.eat(intromerged)
-    dom.eat(content)
-    dom.eat(bibliomerged)
+    htmlwriter.eatStructuredPage(body, covermerged)
+    htmlwriter.eatAbstract(body, abstract)
+    htmlwriter.eatTOC(body, toc)
+    htmlwriter.eatStructuredPage(body, forewordmerged)
+    htmlwriter.eatStructuredPage(body, intromerged)
+    htmlwriter.eatStructuredPage(body, content)
+    htmlwriter.eatStructuredPage(body, bibliomerged)
+    htmlwriter.eatfootnotes(body, content.footnotes)
 
-    print(dom.tohtml())
+    print(body.tohtml())
 
 if __name__ == '__main__':
     main(sys.argv)
