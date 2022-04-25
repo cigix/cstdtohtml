@@ -12,7 +12,7 @@ import pages
 import toc
 
 def htmlformat(string, newlines=True):
-    '''format(string): Replace placeholders and special characters.
+    '''htmlformat(string): Replace placeholders and special characters.
 
     Parameters:
         - string: str, the string to format
@@ -90,6 +90,9 @@ class Tag:
         if self.attributes is not None:
             res += ' ' + self.attributes
         res += ">\n"
+        if self.attributes and self.attributes[-1] == '/':
+            # self closing, no-content tag
+            return res
         for content in self.contents:
             if isinstance(content, Tag):
                 string = content.tohtml()
@@ -99,6 +102,30 @@ class Tag:
                 res += "  " + line + '\n'
         res += "</" + self.tag + ">\n"
         return res
+
+def footnotetohtml(footnoteid, elems):
+    '''footnotetohtml(footnoteid, elems): Turn a footnote into a HTML tag.
+
+    Return a Tag.'''
+    aside = Tag("aside", f'<a href="#footnote{footnoteid}">{footnoteid})</a>')
+    div = Tag(f'div id="footnote{footnoteid}"', aside)
+    for elem in elems:
+        if type(elem) is elements.Paragraph:
+            div.add(Tag("p", htmlformat(elem.content)))
+        elif type(elem) is elements.Code:
+            lines = [htmlformat(l, False) for l in elem.lines]
+            div.add(Tag("pre", lines))
+        else:
+            raise ValueError(
+                f"Unknown type in footnotes: {elem.__class__.__name__}")
+    return div
+
+def eatfootnotes(root, footnotes):
+    '''eatfootnotes(root, footnotes): Eat footnotes.
+
+    Turn a footnote dict into HTML tags.'''
+    for footnote in sorted(footnotes.keys()):
+        root.add(footnotetohtml(footnote, footnotes[footnote]))
 
 def eatStructuredPage(root, page):
     '''eatStructuredPage(page, root): Eat a StructuredPage.
@@ -113,7 +140,19 @@ def eatStructuredPage(root, page):
     if isinstance(page, pages.CoverPage):
         root.add(Tag("h1", page.title))
 
+    dumpedfootnotes = set()
+    todumpfootnotes = set()
+    def dumpfootnotes():
+        nonlocal tagstack, dumpedfootnotes, todumpfootnotes
+        for footnote in sorted(todumpfootnotes):
+            root.add(footnotetohtml(footnote, page.footnotes[footnote]))
+        tagstack = []
+        dumpedfootnotes.update(todumpfootnotes)
+        todumpfootnotes = set()
+
     for i, elem in enumerate(page.elements):
+        if isinstance(elem, elements.Text):
+            todumpfootnotes.update(elem.footnotes)
         if type(elem) is elements.Paragraph:
             # If:
             #   paragraph is sandwidched between unorderedlistitems
@@ -214,29 +253,29 @@ def eatStructuredPage(root, page):
             root.add(ol)
             continue
         if type(elem) is elements.TitleHeading:
+            dumpfootnotes()
             if elem.content[:6] == "Annex ":
                 key = elem.content[6:]
             else:
                 key = elem.content
             h1 = Tag(f'h1 id="{key}"', f'<a href="#{key}">{elem.content}</a>')
-            tagstack = list()
             root.add(h1)
             continue
         if type(elem) is elements.NumberedHeading:
+            dumpfootnotes()
             level = elem.key.count('.') + 1
             key = elem.key
             h = Tag(f'h{level} id="{key}"', f'<a href="#{key}">{key}</a>')
-            tagstack = list()
             root.add(h)
             continue
         if type(elem) is elements.NumberedTitleHeading:
+            dumpfootnotes()
             key = elem.key
             if key[-1] == '.':
                 key = key[:-1]
             level = key.count('.') + 1
             h = Tag(f'h{level} id="{key}"', f'<a href="#{key}">{elem.key} '
                     f'{htmlformat(elem.content)}</a>')
-            tagstack = list()
             root.add(h)
             continue
         if type(elem) is elements.Code:
@@ -274,6 +313,9 @@ def eatStructuredPage(root, page):
 
         raise ValueError(
             f"Unknown type of element: {elem.__class__.__name__}")
+
+    dumpfootnotes()
+    return dumpedfootnotes
 
 def eatAbstract(root, abstract):
     '''eatAbstract(root, abstract): Eat an Abstract.
@@ -328,23 +370,3 @@ def eatTOC(root, t):
                 print("Entry:", key, title, file=sys.stderr)
                 print("Levels len:", len(levels), file=sys.stderr)
                 raise ValueError
-
-def eatfootnotes(root, footnotes):
-    '''eatfootnotes(root, footnotes): Eat footnotes.
-
-    Turn a footnote dict into HTML tags.'''
-    for footnote in sorted(footnotes.keys()):
-        elems = footnotes[footnote]
-        aside = Tag("aside",
-                    f'<a href="#footnote{footnote}">{footnote})</a>')
-        div = Tag(f'div id="footnote{footnote}"', aside)
-        for elem in elems:
-            if type(elem) is elements.Paragraph:
-                div.add(Tag("p", htmlformat(elem.content)))
-            elif type(elem) is elements.Code:
-                lines = [htmlformat(l, False) for l in elem.lines]
-                div.add(Tag("pre", lines))
-            else:
-                raise ValueError(
-                    f"Unknown type in footnotes: {elem.__class__.__name__}")
-        root.add(div)

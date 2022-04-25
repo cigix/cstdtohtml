@@ -113,14 +113,27 @@ def texttohtml(text):
                                        for h in front_header])
     body = htmlwriter.Tag("body", header)
 
-    htmlwriter.eatStructuredPage(body, covermerged)
+    donefootnotes = set()
+    donefootnotes |= htmlwriter.eatStructuredPage(body, covermerged)
     htmlwriter.eatAbstract(body, abstract)
     htmlwriter.eatTOC(body, toc)
-    htmlwriter.eatStructuredPage(body, forewordmerged)
-    htmlwriter.eatStructuredPage(body, intromerged)
-    htmlwriter.eatStructuredPage(body, content)
-    htmlwriter.eatStructuredPage(body, bibliomerged)
-    htmlwriter.eatfootnotes(body, content.footnotes)
+    donefootnotes |= htmlwriter.eatStructuredPage(body, forewordmerged)
+    donefootnotes |= htmlwriter.eatStructuredPage(body, intromerged)
+    donefootnotes |= htmlwriter.eatStructuredPage(body, content)
+    donefootnotes |= htmlwriter.eatStructuredPage(body, bibliomerged)
+
+    allfootnotes = set(content.footnotes.keys())
+    todofootnotes = allfootnotes - donefootnotes
+
+    body.add(htmlwriter.Tag("hr /"))
+    body.add(htmlwriter.Tag("i", "Footnotes should be at the end of the"
+        " sections they appear in, but it seems we did not find those:"))
+
+    htmlwriter.eatfootnotes(body, {
+            footnote: elems
+            for footnote, elems in content.footnotes.items()
+            if footnote in todofootnotes
+        })
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -129,8 +142,7 @@ def texttohtml(text):
   <meta charset="utf-8">
   <title>{isostd}</title>
 </head>
-{body.tohtml()}
-</html>
+{body.tohtml()}</html>
 """
 
     return html

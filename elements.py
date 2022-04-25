@@ -9,9 +9,11 @@ class Text:
     '''A text container.
 
     Attributes:
-        - content: str, the text of the paragraph'''
+        - content: str, the text of the paragraph
+        - footnotes: set of int, the footnotes present in the content'''
     def __init__(self, content):
         self.content = content.strip()
+        self.footnotes = set()
 
     def addcontent(self, content):
         '''addcontent(self, content): Append to the contents.

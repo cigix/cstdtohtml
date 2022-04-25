@@ -248,7 +248,7 @@ class StructuredPage:
 
             lorem ipsum123)
 
-        This causes the footnote reference to be considered as code, an so does
+        This causes the footnote reference to be considered as code, and so does
         the following line.'''
         todelete = list()
         for i in range(1, len(self.elements)):
@@ -278,7 +278,8 @@ class StructuredPage:
 
         Match the footnotes with the contents of the page, replacing the
         references ("<number>)") with placeholders
-        ("\x1bfootnote<number>\x1b").'''
+        ("\x1bfootnote<number>\x1b"). Also registers them to the elements'
+        footnote field where applicable.'''
         for footnote in self.footnotes.keys():
             regex = re.compile(fr"{footnote}\)")
             placeholder = f"\x1bfootnote{footnote}\x1b"
@@ -289,7 +290,9 @@ class StructuredPage:
                     # contains a lot of sequences of the form "<number>)" that
                     # never are footnotes
                     continue
-                elem.content = regex.sub(placeholder, elem.content)
+                elem.content, n = regex.subn(placeholder, elem.content)
+                if 0 < n:
+                    elem.footnotes.add(footnote)
 
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
