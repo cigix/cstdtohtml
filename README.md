@@ -12,3 +12,8 @@ extension.
 # Applications
 A version of the C17 standard passed through this tool is currently hosted at
 [cigix.me/c17](https://cigix.me/c17).
+
+# Licensing
+This software is published under the
+[GNU General Public Licence v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
+This license applies to all "source code" in this repository.
