@@ -1,6 +1,6 @@
 all: c17.html
 
-%.html: %.pdf cstdtohtml *.py
+%.html: %.pdf cstdtohtml $(wildcard *.py)
 	./cstdtohtml $< $@
 
 got.html: c17.pdf cstdtohtml

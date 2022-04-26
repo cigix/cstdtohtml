@@ -93,6 +93,9 @@ def texttohtml(text):
         p.reworkfootnotes()
         p.fixfootnoterefs()
         p.putfootnoteplaceholders()
+        # Manual fix: this footnote is on the next page
+        if 163 in p.footnotes.keys():
+            p._putfootnoteplaceholder(164)
 
     covermerged = pages.mergepages(cover)
     forewordmerged = pages.mergepages(foreword)
@@ -163,6 +166,9 @@ def main(argv):
         outputfile = os.path.splitext(inputfile)[0] + ".html"
 
     text = pdftotext(inputfile)
+    # for debugging purposes
+    #with open(".cstdtohtml_raw", 'w') as f:
+    #    f.write(text)
     html = texttohtml(text)
     with open(outputfile, "wt") as out:
         out.write(html)

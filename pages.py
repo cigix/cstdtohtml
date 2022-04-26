@@ -272,6 +272,20 @@ class StructuredPage:
         for i in reversed(todelete):
             self.elements[i:i+1] = []
 
+    def _putfootnoteplaceholder(self, footnote):
+        regex = re.compile(fr"{footnote}\)")
+        placeholder = f"\x1bfootnote{footnote}\x1b"
+        for elem in self.elements:
+            if not isinstance(elem, elements.Text):
+                continue
+            if elem.content[:20] == "Forward references: ":
+                # contains a lot of sequences of the form "<number>)" that are
+                # never footnotes
+                continue
+            elem.content, n = regex.subn(placeholder, elem.content)
+            if 0 < n:
+                elem.footnotes.add(footnote)
+
     def putfootnoteplaceholders(self):
         r'''putfootnoteplaceholders(self): Replace footnote references with
         placeholders.
@@ -281,18 +295,7 @@ class StructuredPage:
         ("\x1bfootnote<number>\x1b"). Also registers them to the elements'
         footnote field where applicable.'''
         for footnote in self.footnotes.keys():
-            regex = re.compile(fr"{footnote}\)")
-            placeholder = f"\x1bfootnote{footnote}\x1b"
-            for elem in self.elements:
-                if not isinstance(elem, elements.Text):
-                    continue
-                if elem.content[:20] == "Forward references: ":
-                    # contains a lot of sequences of the form "<number>)" that
-                    # never are footnotes
-                    continue
-                elem.content, n = regex.subn(placeholder, elem.content)
-                if 0 < n:
-                    elem.footnotes.add(footnote)
+            self._putfootnoteplaceholder(footnote)
 
 class CoverPage(StructuredPage):
     '''A piece of content preceded by a subheader and a title.
