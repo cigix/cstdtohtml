@@ -138,9 +138,11 @@ class Code:
     '''A text container. The contents are not left-stripped.
 
     Attributes:
-        - lines: list of str, the lines of content'''
+        - lines: list of str, the lines of content
+        - footnotes: set of int, the footnotes present in the content'''
     def __init__(self, content):
         self.lines = list()
+        self.footnotes = set()
         self.addcontent(content)
 
     def addcontent(self, content):

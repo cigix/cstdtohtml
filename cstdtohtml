@@ -128,15 +128,16 @@ def texttohtml(text):
     allfootnotes = set(content.footnotes.keys())
     todofootnotes = allfootnotes - donefootnotes
 
-    body.add(htmlwriter.Tag("hr /"))
-    body.add(htmlwriter.Tag("i", "Footnotes should be at the end of the"
-        " sections they appear in, but it seems we did not find those:"))
+    if todofootnotes:
+        body.add(htmlwriter.Tag("hr /"))
+        body.add(htmlwriter.Tag("i", "Footnotes should be at the end of the"
+            " sections they appear in, but it seems we did not find those:"))
 
-    htmlwriter.eatfootnotes(body, {
-            footnote: elems
-            for footnote, elems in content.footnotes.items()
-            if footnote in todofootnotes
-        })
+        htmlwriter.eatfootnotes(body, {
+                footnote: elems
+                for footnote, elems in content.footnotes.items()
+                if footnote in todofootnotes
+            })
 
     html = f"""<!DOCTYPE html>
 <html lang="en">

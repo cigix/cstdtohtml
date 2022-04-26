@@ -151,7 +151,7 @@ def eatStructuredPage(root, page):
         todumpfootnotes = set()
 
     for i, elem in enumerate(page.elements):
-        if isinstance(elem, elements.Text):
+        if isinstance(elem, elements.Text) or isinstance(elem, elements.Code):
             todumpfootnotes.update(elem.footnotes)
         if type(elem) is elements.Paragraph:
             # If:
