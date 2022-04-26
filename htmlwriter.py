@@ -108,7 +108,7 @@ def footnotetohtml(footnoteid, elems):
 
     Return a Tag.'''
     aside = Tag("aside", f'<a href="#footnote{footnoteid}">{footnoteid})</a>')
-    div = Tag(f'div id="footnote{footnoteid}"', aside)
+    div = Tag(f'div id="footnote{footnoteid}" class="footnotetext"', aside)
     for elem in elems:
         if type(elem) is elements.Paragraph:
             div.add(Tag("p", htmlformat(elem.content)))
