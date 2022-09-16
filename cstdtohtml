@@ -88,8 +88,12 @@ def texttohtml(text):
                  for p in contentsupages[1:]]
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
-    for p in contents:
+    for i, p in enumerate(contents):
         p.reindentcodes()
+        # Manual fix: this footnote is spread over two pages
+        if 99 in p.footnotes.keys():
+            cutparagraph = contents[i + 1].elements.pop()
+            p.footnotes[99].append(cutparagraph)
         p.reworkfootnotes()
         p.fixfootnoterefs()
         p.putfootnoteplaceholders()
