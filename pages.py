@@ -339,6 +339,14 @@ def mergepages(pages):
             cutcode = page.elements.pop(0)
             merge.elements[-1].lines += cutcode.lines
             merge.elements[-1].footnotes |= cutcode.footnotes
+        # A Text (any subclass) plus a Paragraph (strict) starting with a
+        # lowercase
+        elif (isinstance(merge.elements[-1], elements.Text)
+                and type(page.elements[0]) is elements.Paragraph
+                and page.elements[0].content[0].islower()):
+            cuttext = page.elements.pop(0)
+            merge.elements[-1].addcontent(cuttext.content)
+            merge.elements[-1].footnotes |= cuttext.footnotes
 
         merge.elements += page.elements
         for footnote, elems in page.footnotes.items():
