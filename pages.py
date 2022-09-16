@@ -332,6 +332,14 @@ def mergepages(pages):
     Return: type(pages[0]), the merged pages.'''
     merge = copy.deepcopy(pages[0])
     for page in pages[1:]:
+        # Is there a chance an element was split over two pages?
+        # A Code (any subclass) plus a Code (strict)
+        if (isinstance(merge.elements[-1], elements.Code)
+                and type(page.elements[0]) is elements.Code):
+            cutcode = page.elements.pop(0)
+            merge.elements[-1].lines += cutcode.lines
+            merge.elements[-1].footnotes |= cutcode.footnotes
+
         merge.elements += page.elements
         for footnote, elems in page.footnotes.items():
             if footnote in merge.footnotes:
