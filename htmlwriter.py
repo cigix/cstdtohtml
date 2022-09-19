@@ -19,6 +19,7 @@ def htmlformat(string, newlines=True):
         - newlines: bool, optional (default: True), should newlines be augmented
           with <br>
     '''
+    string = string.replace("| \x03X", "|  \x03X")
     string = string.replace('\x03', '□')
     string = string.replace('\x06', '')
     string = string.replace('\x07', '')
