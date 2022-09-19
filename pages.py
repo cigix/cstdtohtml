@@ -347,6 +347,13 @@ def mergepages(pages):
             cuttext = page.elements.pop(0)
             merge.elements[-1].addcontent(cuttext.content)
             merge.elements[-1].footnotes |= cuttext.footnotes
+        # A ValueDefinition (any subclass) plus a Code (strict)
+        elif (isinstance(merge.elements[-1], elements.ValueDefinition)
+                and type(page.elements[0]) is elements.Code):
+            cutcode = page.elements.pop(0)
+            for line in cutcode.lines:
+                merge.elements[-1].addcontent(line)
+            merge.elements[-1].footnotes |= cutcode.footnotes
 
         merge.elements += page.elements
         for footnote, elems in page.footnotes.items():
