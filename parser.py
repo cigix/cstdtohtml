@@ -88,13 +88,13 @@ class LineParser:
             if (not line[:2].isspace() # no or little indent
                     and len(groups) == 2): # only 2 groups
                 stripped = line.lstrip() # remove any indentation
-                l = len(splits[0])
-                # if the second split starts between the 12th or 15th column,
-                # and there are at least 4 spaces between splits
-                if (12 <= stripped.find(splits[1], l) <= 15
+                l = len(groups[0])
+                # if the second group starts between the 12th or 15th column,
+                # and there are at least 4 spaces between groups
+                if (12 <= stripped.find(groups[1], l) <= 15
                         and stripped[l:l + 4].isspace()):
                     # value definition of anything
-                    self.elements.append(elements.ValueDefinition(*splits))
+                    self.elements.append(elements.ValueDefinition(*groups))
                     self._inelement = True
                     return
 
