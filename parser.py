@@ -32,7 +32,11 @@ class LineParser:
             self.elements.append(elements.Paragraph(line))
             self._inelement = True
             return
-        #print(tocmatcher._titlestack[-1], tocmatcher._headingstack[-1], line, sep='\t')
+        if line[:8] == "o,u,x,X ":
+            # manual fix
+            self.elements.append(elements.ValueDefinition(*splits))
+            self._inelement = True
+            return
         if tocmatcher.matchtitle(line):
             if (re.match(toc.KEYREGEX, splits[0])
                     or re.match(fr"{toc.CHAPTERREGEX}\.", splits[0])):
