@@ -234,6 +234,11 @@ class StructuredPage:
                 newelems = list()
                 islastaparagraph = False
                 for elem in self.footnotes[footnote]:
+                    # Fix for N3220footnote456: the ValueDefinition should have
+                    # been part of the previous paragraph
+                    if isinstance(elem, elements.ValueDefinition):
+                        elem = elements.Paragraph(
+                                f"{elem.value} {elem.content}")
                     if isinstance(elem, elements.Paragraph):
                         if islastaparagraph:
                             newelems[-1].addcontent(elem.content)
