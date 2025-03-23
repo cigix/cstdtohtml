@@ -38,7 +38,7 @@ def texttohtml(text):
 
     Return: str, a HTML document'''
     unstructuredpages = [pages.Page(p) for p in text.split('\f') if p]
-    isostd = utils.groupwords(unstructuredpages[0].header)[2]
+    isostd = unstructuredpages[0].header[0].split('—')[0]
 
     coverbegin = 0
     # The cover and the first page of content have a common subheader
