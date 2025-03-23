@@ -1,9 +1,9 @@
-all: c17.html
+all: c23.html
 
 %.html: %.pdf cstdtohtml $(wildcard *.py)
 	./cstdtohtml $< $@
 
-got.html: c17.pdf cstdtohtml $(wildcard *.py)
+got.html: c23.pdf cstdtohtml $(wildcard *.py)
 	./cstdtohtml $< got.html || true
 
 check: got.html ref

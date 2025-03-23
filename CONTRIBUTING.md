@@ -2,7 +2,7 @@
 
 ## Testing process
 
-The Makefile assumes you have a file called `c17.pdf` at the root of the
+The Makefile assumes you have a file called `c23.pdf` at the root of the
 repository, which is used by most rules; you will need to either rename your
 file or edit the Makefile to change that.
 
@@ -26,7 +26,7 @@ Edit the code so that the problem gets fixed. You can use
 ```
 make [HTML]
 ```
-to generate `c17.html` from `c17.pdf`, or `[whatever].html` to generate it from
+to generate `c23.html` from `c23.pdf`, or `[whatever].html` to generate it from
 `[whatever].pdf`.
 
 ### Step 3: Check for regressions
