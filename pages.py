@@ -20,8 +20,8 @@ class Page:
     '''A page, split into: header, content, footer.
 
     Attributes:
-        - header: str, the header line
-        - footer: str, the footer line
+        - header: list of str, the header lines
+        - footer: list of str, the footer lines
         - content: list of str, all the other lines
         - indent: int, columns of left margin
 
@@ -35,26 +35,40 @@ class Page:
         Parameters:
             - page: str, the page'''
         lines = [line.rstrip() for line in page.split('\n')]
-        header = 0
-        while not lines[header]:
-            header += 1
-        footer = len(lines) - 1
-        while not lines[footer]:
-            footer -= 1
 
-        contentbegin = header + 1
+        # headerbegin: first non-empty line of header
+        # headerend: first empty line after header
+        headerbegin = 0
+        while not lines[headerbegin]:
+            headerbegin += 1
+        headerend = headerbegin + 1
+        while lines[headerend]:
+            headerend += 1
+
+        # footerbegin: first non-empty line of footer
+        # footerend: first empty line after footer
+        footerend = len(lines)
+        while not lines[footerend - 1]:
+            footerend -= 1
+        footerbegin = footerend - 1
+        while lines[footerbegin - 1]:
+            footerbegin -= 1
+
+        # contentbegin: first non-empty line after header
+        # contentend: first empty line before footer
+        contentbegin = headerend + 1
         while not lines[contentbegin]:
             contentbegin += 1
-        contentend = footer - 1
-        while not lines[contentend]:
+        contentend = footerbegin - 1
+        while not lines[contentend - 1]:
             contentend -= 1
 
-        contentlines = lines[contentbegin:contentend+1]
+        contentlines = lines[contentbegin:contentend]
 
         indents = sorted(set(len(line) - len(line.lstrip())
                              for line in contentlines
                              if line))
-        if indents[0] == 0 and len(indents) >= 2:
+        if 2 <= len(indents) and indents[0] == 0:
             # there are different indents, we need to find the maximal one such
             # that only paragraph numbers are under the indent
             def checkonlynumbersinmargin(lines, margin):
@@ -86,8 +100,8 @@ class Page:
             # everything is indented, so there is no left margin
             self.indent = 0
 
-        self.header = lines[header].lstrip()
-        self.footer = lines[footer].lstrip()
+        self.header = [line.lstrip() for line in lines[headerbegin:headerend]]
+        self.footer = [line.lstrip() for line in lines[footerbegin:footerend]]
         self.content = contentlines
 
 class StructuredPage:
