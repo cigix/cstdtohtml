@@ -10,8 +10,13 @@ If omitted, the output filename will be similar to the input, with the '.html'
 extension.
 
 # Applications
-A version of the C17 standard passed through this tool is currently hosted at
-[cigix.me/c17](https://cigix.me/c17).
+
+A version of the C23 standard passed through this tool is currently hosted at
+[cigix.me/c23](https://cigix.me/c23).
+
+A version of the C17 standard passed through a previous version of this tool
+([tag `c17`](https://github.com/cigix/cstdtohtml/tree/c17)) is currently hosted
+at [cigix.me/c17](https://cigix.me/c17).
 
 # Licensing
 This software is published under the
