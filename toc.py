@@ -7,7 +7,13 @@ import utils
 
 ANNEXREGEX = r"[A-Z]\b"
 CHAPTERREGEX = r"\d+"
-KEYREGEX = fr"(({CHAPTERREGEX})|({ANNEXREGEX}))(\.\d+)+"
+KEYREGEX = fr"(?:(?:{CHAPTERREGEX})|(?:{ANNEXREGEX}))(?:\.\d+)+"
+PAGENUMREGEX = r"[0-9ivx]+"
+TITLEREGEX = r"\w(?:[^ .][ .]?)+[^ .]"
+
+UNKEYEDCHAPTERRE = re.compile(fr"({TITLEREGEX})\s+({PAGENUMREGEX})")
+CHAPTERRE = re.compile(fr"({CHAPTERREGEX})\s+({TITLEREGEX})\s+({PAGENUMREGEX})")
+SECTIONRE = re.compile(fr"\s*({KEYREGEX})\s+({TITLEREGEX})\s+(?:\. )*\s*({PAGENUMREGEX})")
 
 class TOC:
     '''A representation of the table of contents.
@@ -28,19 +34,17 @@ class TOC:
             if not line:
                 continue
             try:
-                splits = line.split(maxsplit=1)
-                if re.fullmatch(KEYREGEX, splits[0]):
-                    # numbered title, with dots
-                    key = splits[0]
-                    title = splits[1].split(' .', maxsplit=1)[0]
+                if m := UNKEYEDCHAPTERRE.fullmatch(line):
+                    title, page = m.groups()
+                    self.titles.append((title, None))
+                elif m := CHAPTERRE.fullmatch(line):
+                    key, title, page = m.groups()
+                    self.titles.append((title, key))
+                elif m := SECTIONRE.fullmatch(line):
+                    key, title, page = m.groups()
                     self.titles.append((title, key))
                 else:
-                    groups = utils.groupwords(line)
-                    if groups[0][0].isdigit():
-                        # numbered title, no dots
-                        self.titles.append((groups[1], groups[0]))
-                    else:
-                        self.titles.append((groups[0], None))
+                    print("Unrecognized TOC pattern:", repr(line))
             except:
                 print(line)
                 raise
