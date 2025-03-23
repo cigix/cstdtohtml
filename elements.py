@@ -24,7 +24,9 @@ class Text:
         If the last word of the paragraph starts with "http://", the content
         gets concatenated directly. Otherwise, the content is concatenated with
         a newline character'''
-        if self.content.split()[-1][:7] == "http://":
+        if not self.content:
+            self.content = content.strip()
+        elif self.content.split()[-1][:7] == "http://":
             self.content += content.strip()
         else:
             self.content += '\n' + content.strip()
