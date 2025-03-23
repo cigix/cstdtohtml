@@ -8,7 +8,6 @@ import htmlwriter
 import linker
 import pages
 import utils
-from abstract import Abstract
 from toc import TOC, TOCMatcher
 
 def pdftotext(file):
@@ -43,11 +42,10 @@ def texttohtml(text):
     coverbegin = 0
     # The cover and the first page of content have a common subheader
     front_header = utils.groupwords(unstructuredpages[coverbegin].content[0])
-    abstractbegin = coverbegin + 1
-    while unstructuredpages[abstractbegin].content[0].lstrip() != "Abstract":
-        abstractbegin += 1
-    tocbegin = abstractbegin + 1
-    while unstructuredpages[tocbegin].content[0].lstrip() != "Contents":
+    tocbegin = coverbegin + 1
+    # There is an empty page between cover and ToC
+    while (unstructuredpages[tocbegin].content
+           and unstructuredpages[tocbegin].content[0].lstrip() != "Contents"):
         tocbegin += 1
     forewordbegin = tocbegin + 1
     while unstructuredpages[forewordbegin].content[0].lstrip() != "Foreword":
@@ -64,15 +62,13 @@ def texttohtml(text):
         bibliobegin += 1
     indexbegin = bibliobegin + 1
 
-    coverupages = unstructuredpages[coverbegin:abstractbegin]
-    abstractupages = unstructuredpages[abstractbegin:tocbegin]
+    coverupages = unstructuredpages[coverbegin:tocbegin]
     tocupages = unstructuredpages[tocbegin:forewordbegin]
     forewordupages = unstructuredpages[forewordbegin:introbegin]
     introupages = unstructuredpages[introbegin:contentsbegin]
     contentsupages = unstructuredpages[contentsbegin:bibliobegin]
     biblioupages = unstructuredpages[bibliobegin:indexbegin]
 
-    abstract = Abstract(abstractupages)
     toc = TOC(tocupages)
     # remove Index
     toc.titles.pop()
@@ -122,7 +118,6 @@ def texttohtml(text):
 
     donefootnotes = set()
     donefootnotes |= htmlwriter.eatStructuredPage(body, covermerged)
-    htmlwriter.eatAbstract(body, abstract)
     htmlwriter.eatTOC(body, toc)
     donefootnotes |= htmlwriter.eatStructuredPage(body, forewordmerged)
     donefootnotes |= htmlwriter.eatStructuredPage(body, intromerged)
