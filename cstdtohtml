@@ -89,6 +89,9 @@ def texttohtml(text):
         p.reworkfootnotes()
         p.fixfootnoterefs()
         p.putfootnoteplaceholders()
+        # Fix N3220footnote70: it is on the next page
+        if 69 in p.footnotes.keys():
+            p._putfootnoteplaceholder(70)
 
     covermerged = pages.mergepages(cover)
     forewordmerged = pages.mergepages(foreword)
