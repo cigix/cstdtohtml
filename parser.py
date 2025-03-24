@@ -88,6 +88,11 @@ class LineParser:
                 self.elements.append(elements.ValueDefinition(*splits))
                 self._inelement = True
                 return
+            if line[0] == '%' and 2 <= len(splits[0]):
+                # value definition of a format specifier
+                self.elements.append(elements.ValueDefinition(*splits))
+                self._inelement = True
+                return
 
             if (not line[:2].isspace() # no or little indent
                     and len(groups) == 2): # only 2 groups
