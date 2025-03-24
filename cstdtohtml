@@ -85,6 +85,12 @@ def texttohtml(text):
     biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
 
     for i, p in enumerate(contents):
+        # Fix N3220footnote1997: it is not a footnote, just unfortunate number +
+        # parens combo
+        if 1997 in p.footnotes.keys():
+            p.elements[-1].addcontent("1997)" + p.footnotes[1997][0].content)
+            p.elements.extend(p.footnotes[1997][1:])
+            del p.footnotes[1997]
         p.reindentcodes()
         p.reworkfootnotes()
         p.fixfootnoterefs()
