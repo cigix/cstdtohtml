@@ -8,6 +8,34 @@ import sys
 
 # Line-breaks in hyperlinks can happen after the colon or the double slash.
 HTTPBREAKRE = re.compile("https?:(//)?$")
+# hyphenated phrases we don't want to dehyphenate when undoing line breaks
+NOSTITCHING = (
+    "60559-",          # ISO/IEC 60559-specified
+    "bit-",            # bit-precise
+    "const-",          # const-qualified
+    "decimal-",        # decimal-point
+    "derived-",        # derived-declarator-type-list
+    "encoding-to-",    # encoding-to-encoding
+    "end-of-",         # end-of-file
+    "execution-",      # execution-time
+    "floating-",       # floating-point
+    "function-",       # function-like
+    "half-",           # half-revolutions
+    "implementation-", # implementation-defined
+    "little-",         # little-endian
+    "locale-",         # locale-specific
+    "new-",            # new-line
+    "non-",            # non-arithmetic, non-recursive, non-white-space
+    "null-",           # null-terminated
+    "pointer-to-",     # pointer-to-pointer
+    "real-",           # real-floating
+    "runtime-",        # runtime-constraints
+    "single-",         # single-quotes
+    "storage-",        # storage-class
+    "string-from-",    # string-from-encoding
+    "type-",           # type-generic
+    "va-opt-"          # va-opt-replacement
+)
 
 class Text:
     '''A text container.
@@ -25,15 +53,74 @@ class Text:
         Parameters:
             - content: str, the text to append
 
-        If the last word of the paragraph starts with a broken hyperlink, the
-        content gets concatenated directly. Otherwise, the content is
-        concatenated with a newline character.'''
+        If the current paragraph ends with a broken URL, the remainder of the
+        hyperlink is concatenated with the current paragraph, then a newline,
+        then the rest of content.
+        If the current paragraph ends with a hyphen-broken word, the remainder
+        of the word is stitched back with its beginning, then a newline, then
+        the rest of content. "Stitching" involves removing the hyphen, except
+        for the following hyphenated phrases:
+            - ISO/IEC 60559-specified
+            - bit-precise
+            - const-qualified
+            - decimal-point
+            - derived-declarator-type-list
+            - encoding-to-encoding
+            - end-of-file
+            - execution-time
+            - floating-point
+            - function-like
+            - half-revolutions
+            - implementation-defined
+            - little-endian
+            - locale-specific
+            - new-line
+            - non-arithmetic
+            - non-recursive
+            - non-white-space
+            - null-terminated
+            - pointer-to-pointer
+            - real-floating
+            - runtime-constraints
+            - single-quotes
+            - storage-class
+            - string-from-encoding
+            - type-generic
+            - va-opt-replacement
+        Otherwise, content is concatenated with a a newline.
+        '''
         if not self.content:
             self.content = content.strip()
-        elif HTTPBREAKRE.search(self.content):
-            self.content += content.strip()
-        else:
+            return
+
+        # "newline": concatenate '\n' + content
+        # "first-word": concatenate first word of content + '\n' + rest of
+        #               content
+        # "dehyphenate": like "first word", but remove a hyphen from
+        #                self.content first
+        concatenation = "newline"
+        if HTTPBREAKRE.search(self.content):
+            concatenation = "first-word"
+        elif self.content[-1] == '-':
+            last_word = self.content.split()[-1]
+            if last_word.lower() in NOSTITCHING:
+                concatenation = "first-word"
+            else:
+                concatenation = "dehyphenate"
+
+        if concatenation == "newline":
             self.content += '\n' + content.strip()
+        if concatenation == "dehyphenate":
+            self.content = self.content[:-1]
+            concatenation = "first-word"
+        if concatenation == "first-word":
+            content_list = content.split(maxsplit=1)
+            if len(content_list) == 1:
+                # Only one word of content -> just concatenate
+                self.content += content.strip()
+            else:
+                first_word, rest = content_list
+                self.content += first_word.strip() + '\n' + rest.strip()
 
     def __str__(self):
         return self.content.replace('\n', r"\n")
