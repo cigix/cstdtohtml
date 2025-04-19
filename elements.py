@@ -3,7 +3,11 @@
 Contains definitions about the various structuring elements that make up a page.
 '''
 
+import re
 import sys
+
+# Line-breaks in hyperlinks can happen after the colon or the double slash.
+HTTPBREAKRE = re.compile("https?:(//)?$")
 
 class Text:
     '''A text container.
@@ -21,12 +25,12 @@ class Text:
         Parameters:
             - content: str, the text to append
 
-        If the last word of the paragraph starts with "http://", the content
-        gets concatenated directly. Otherwise, the content is concatenated with
-        a newline character'''
+        If the last word of the paragraph starts with a broken hyperlink, the
+        content gets concatenated directly. Otherwise, the content is
+        concatenated with a newline character.'''
         if not self.content:
             self.content = content.strip()
-        elif self.content.split()[-1][:7] == "http://":
+        elif HTTPBREAKRE.search(self.content):
             self.content += content.strip()
         else:
             self.content += '\n' + content.strip()
