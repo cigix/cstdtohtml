@@ -138,6 +138,40 @@ class NumberedParagraph(Paragraph):
         self.number = number
         Paragraph.__init__(self, content)
 
+class NoteParagraph(NumberedParagraph):
+    '''Attributes:
+        - number: int, see NumberedParagraph
+        - content: str, see Text'''
+    def __str__(self):
+        return "NOTE " + super().__str__()
+class NoteNumberParagraph(NoteParagraph):
+    '''Attributes:
+        - notenumber: int, the number associated to the note
+        - number: int, see NumberedParagraph
+        - content: str, see Text'''
+    def __init__(self, number, notenumber, content):
+        self.notenumber = notenumber
+        NoteParagraph.__init__(self, number, content)
+    def __str__(self):
+        return f"NOTE {self.notenumber} " + super().__str__()
+
+class ExampleParagraph(NumberedParagraph):
+    '''Attributes:
+        - number: int, see NumberedParagraph
+        - content: str, see Text'''
+    def __str__(self):
+        return "EXAMPLE " + super().__str__()
+class ExampleNumberParagraph(ExampleParagraph):
+    '''Attributes:
+        - examplenumber: int, the number associated to the example
+        - number: int, see NumberedParagraph
+        - content: str, see Text'''
+    def __init__(self, number, examplenumber, content):
+        self.examplenumber = examplenumber
+        ExampleParagraph.__init__(self, number, content)
+    def __str__(self):
+        return f"EXAMPLE {self.examplenumber} " + super().__str__()
+
 class UnorderedListItem(Text):
     '''A member of an unordered list.
 

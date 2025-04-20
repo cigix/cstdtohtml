@@ -170,8 +170,28 @@ class LineParser:
             if unindented[:7].isspace():
                 self.elements.append(elements.NumberedCode(num, unindented))
             else:
-                self.elements.append(elements.NumberedParagraph(num,
-                                                                unindented))
+                # NumberedParagraph
+                splits = unindented.split(maxsplit=2)
+                firstword = splits[0] if splits else ""
+                secondisint = 2 <= len(splits) and utils.isint(splits[1])
+                if firstword == "NOTE":
+                    if secondisint:
+                        newelem = elements.NoteNumberParagraph(
+                                num, int(splits[1]), " ".join(splits[2:]))
+                    else:
+                        newelem = elements.NoteParagraph(
+                                num, " ".join(splits[1:]))
+                elif firstword == "EXAMPLE":
+                    if secondisint:
+                        newelem = elements.ExampleNumberParagraph(
+                                num, int(splits[1]), " ".join(splits[2:]))
+                    else:
+                        newelem = elements.ExampleParagraph(
+                                num, " ".join(splits[1:]))
+                else:
+                    newelem = elements.NumberedParagraph(num, unindented)
+                self.elements.append(newelem)
+
             self._inelement = True
 
     def parseline(self, line, tocmatcher, forceindent=None):
