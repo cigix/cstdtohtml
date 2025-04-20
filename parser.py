@@ -181,6 +181,10 @@ class LineParser:
                     else:
                         newelem = elements.NoteParagraph(
                                 num, " ".join(splits[1:]))
+                elif (firstword == "Note" and secondisint
+                      and splits[2].startswith("to entry: ")):
+                    newelem = elements.NoteToEntryParagraph(
+                            num, int(splits[1]), splits[2][10:])
                 elif firstword == "EXAMPLE":
                     if secondisint:
                         newelem = elements.ExampleNumberParagraph(

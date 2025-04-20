@@ -154,6 +154,9 @@ class NoteNumberParagraph(NoteParagraph):
         NoteParagraph.__init__(self, number, content)
     def __str__(self):
         return f"NOTE {self.notenumber} " + super().__str__()
+class NoteToEntryParagraph(NoteNumberParagraph):
+    def __str__(self):
+        return f"Note {self.notenumber} to entry: " + super().__str__()
 
 class ExampleParagraph(NumberedParagraph):
     '''Attributes:

@@ -218,6 +218,19 @@ def eatStructuredPage(root, page):
             tagstack = [p]
             root.add(p)
             continue
+        if type(elem) is elements.NoteToEntryParagraph:
+            parkey = f"{key}.p{elem.number}"
+            p = Tag(f'p id="{parkey}"')
+            aside = Tag("aside", f'<a href="#{parkey}">{elem.number}</a>')
+            starttag = Tag('span class="notestart"',
+                           f"Note {elem.notenumber} to entry:")
+            content = Tag('span class="note"', htmlformat(elem.content))
+            p.contents.append(aside)
+            p.contents.append(starttag)
+            p.contents.append(content)
+            tagstack = [p]
+            root.add(p)
+            continue
         if type(elem) is elements.UnorderedListItem:
             depthli = elem.level * 2 - 1
             depthul = depthli - 1
