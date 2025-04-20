@@ -90,18 +90,21 @@ class Tag:
         res = '<' + self.tag
         if self.attributes is not None:
             res += ' ' + self.attributes
-        res += ">\n"
+        res += ">"
         if self.attributes and self.attributes[-1] == '/':
             # self closing, no-content tag
-            return res
+            return res + '\n'
         for content in self.contents:
             if isinstance(content, Tag):
                 string = content.tohtml()
             else:
                 string = content
             for line in string.splitlines():
-                res += "  " + line + '\n'
-        res += "</" + self.tag + ">\n"
+                res += "\n  " + line
+        if self.tag == "pre":
+            res += "</" + self.tag + ">\n"
+        else:
+            res += "\n</" + self.tag + ">\n"
         return res
 
 def footnotetohtml(footnoteid, elems):
