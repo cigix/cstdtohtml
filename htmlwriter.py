@@ -36,6 +36,8 @@ def htmlformat(string, newlines=True):
     string = re.sub(f"(clause\\s)\x1blink({toc.CHAPTERREGEX})\x1b",
                     r'<a href="#\g<2>">\g<1>\g<2></a>', string)
     string = re.sub("\x1blink(.*?)\x1b", r'<a href="#\g<1>">\g<1></a>', string)
+    # Match opt for grammars, except in M.2p1 "adopt"
+    string = re.sub(r'''(?<!ad)\Bopt\b''', r'<sub>opt</sub>', string)
     return string
 
 class Tag:
