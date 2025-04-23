@@ -112,5 +112,9 @@ class TOCMatcher:
         Only the top entry is matched.'''
         if self._headingstack and self._headingstack[-1] is not None:
             if self._headingstack[-1].match(line):
+                # Fix N3220 6.7.3.1p5: it is not a title, just unfortunate
+                # reference
+                if line.startswith('6.7.3.2 through 6.7.3.6'):
+                    return False
                 return True
         return False
