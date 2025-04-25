@@ -13,3 +13,9 @@ check: got.html ref
 
 new_ref: got.html
 	cp got.html ref
+
+clean:
+	$(RM) c23.html got.html ref
+	$(RM) -r __pycache__
+
+.PHONY: all check new_ref clean
