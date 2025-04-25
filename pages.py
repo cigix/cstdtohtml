@@ -292,7 +292,11 @@ class StructuredPage:
             self.elements[i:i+1] = []
 
     def _putfootnoteplaceholder(self, footnote):
-        regex = re.compile(fr"{footnote}\)")
+        regex = re.compile(fr"(?<=\S){footnote}\)")
+        # Fix N3220footnote324 and N3220footnote392: the marks are preceded by a
+        # space
+        if footnote in (324, 392):
+            regex = re.compile(fr"{footnote}\)")
         placeholder = f"\x1bfootnote{footnote}\x1b"
         for elem in self.elements:
             if isinstance(elem, elements.Code):
