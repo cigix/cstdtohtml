@@ -9,6 +9,16 @@ import elements
 import toc
 import utils
 
+# Paragraphs that end a "Syntax" section
+AFTERSYNTAX = (
+    "Constraints",
+    "Description",
+    "Semantics"
+)
+NOTINSYNTAX=0
+STARTSYNTAX=1
+STARTEDSYNTAX=2
+
 class LineParser:
     '''An aggregator of lines that turns them into elements.
 
@@ -22,6 +32,8 @@ class LineParser:
         # Should new text be appended to the last element?
         self._inelement = False
         self._indent = indent
+        # Are we in a "Syntax" section?
+        self._insyntax = NOTINSYNTAX
 
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
@@ -149,8 +161,18 @@ class LineParser:
             # continuation of previous text element
             previous.addcontent(line)
             return
+
         # new paragraph
-        self.elements.append(elements.Paragraph(line))
+        if self._insyntax != NOTINSYNTAX and line in AFTERSYNTAX:
+            self._insyntax = NOTINSYNTAX
+
+        if self._insyntax != NOTINSYNTAX:
+            self.elements.append(elements.Code(line))
+            self._insyntax = STARTEDSYNTAX
+        else:
+            self.elements.append(elements.Paragraph(line))
+            if line == "Syntax":
+                self._insyntax = STARTSYNTAX
         self._inelement = True
         return
 
@@ -167,10 +189,11 @@ class LineParser:
             raise
         else:
             unindented = line[indent:]
-            if unindented[:7].isspace():
+            if unindented[:7].isspace() or self._insyntax == STARTSYNTAX:
                 self.elements.append(elements.NumberedCode(num, unindented))
             else:
                 # NumberedParagraph
+                self._insyntax = NOTINSYNTAX
                 splits = unindented.split(maxsplit=2)
                 firstword = splits[0] if splits else ""
                 secondisint = 2 <= len(splits) and utils.isint(splits[1])
