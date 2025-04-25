@@ -119,5 +119,8 @@ class TOCMatcher:
                 # reference
                 if line.startswith('6.7.3.2 through 6.7.3.6'):
                     return False
+                # Fix N3220 H.12.1p4: ditto
+                if line.startswith('H.12.5 (see H.8).'):
+                    return False
                 return True
         return False
