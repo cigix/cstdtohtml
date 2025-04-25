@@ -213,14 +213,15 @@ def eatStructuredPage(root, page, donefootnotes):
             parkey = f"{key}.p{elem.number}"
             p = Tag(f'p id="{parkey}"')
             aside = Tag("aside", f'<a href="#{parkey}">{elem.number}</a>')
+            p.contents.append(aside)
             startcontent = start.upper()
             if number is not None:
                 startcontent += ' ' + str(number)
             starttag = Tag(f'span class="{start}start"', startcontent)
-            content = Tag(f'span class="{start}"', htmlformat(elem.content))
-            p.contents.append(aside)
             p.contents.append(starttag)
-            p.contents.append(content)
+            if elem.content:
+                content = Tag(f'span class="{start}"', htmlformat(elem.content))
+                p.contents.append(content)
             tagstack = [p]
             root.add(p)
             continue
