@@ -119,12 +119,12 @@ def texttohtml(text):
     body = htmlwriter.Tag("body", header)
 
     donefootnotes = set()
-    donefootnotes |= htmlwriter.eatStructuredPage(body, covermerged)
+    htmlwriter.eatStructuredPage(body, covermerged, donefootnotes)
     htmlwriter.eatTOC(body, toc)
-    donefootnotes |= htmlwriter.eatStructuredPage(body, forewordmerged)
-    donefootnotes |= htmlwriter.eatStructuredPage(body, intromerged)
-    donefootnotes |= htmlwriter.eatStructuredPage(body, content)
-    donefootnotes |= htmlwriter.eatStructuredPage(body, bibliomerged)
+    htmlwriter.eatStructuredPage(body, forewordmerged, donefootnotes)
+    htmlwriter.eatStructuredPage(body, intromerged, donefootnotes)
+    htmlwriter.eatStructuredPage(body, content, donefootnotes)
+    htmlwriter.eatStructuredPage(body, bibliomerged, donefootnotes)
 
     allfootnotes = set(content.footnotes.keys())
     todofootnotes = allfootnotes - donefootnotes

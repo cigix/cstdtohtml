@@ -133,27 +133,31 @@ def eatfootnotes(root, footnotes):
     for footnote in sorted(footnotes.keys()):
         root.add(footnotetohtml(footnote, footnotes[footnote]))
 
-def eatStructuredPage(root, page):
-    '''eatStructuredPage(page, root): Eat a StructuredPage.
+def eatStructuredPage(root, page, donefootnotes):
+    '''eatStructuredPage(root, page, donefootnotes): Eat a StructuredPage.
 
     Parameters:
         - root: Tag, the tag to which generated tags will be added
         - page: StructuredPage, the page to turn to HTML tags
+        - donefootnotes: set of int, the set of footnotes that have already been
+          dumped, and should not be dumped again
 
-    Read all the elements of the page and turn them into HTML tags.'''
+    Read all the elements of the page and turn them into HTML tags.
+
+    This function adds entries to donefootnotes.
+    '''
     tagstack = list()
     key = None # the last key seen
     if isinstance(page, pages.CoverPage):
         root.add(Tag("h1", page.title))
 
-    dumpedfootnotes = set()
     todumpfootnotes = set()
     def dumpfootnotes():
-        nonlocal tagstack, dumpedfootnotes, todumpfootnotes
-        for footnote in sorted(todumpfootnotes):
+        nonlocal tagstack, donefootnotes, todumpfootnotes
+        for footnote in sorted(todumpfootnotes - donefootnotes):
             root.add(footnotetohtml(footnote, page.footnotes[footnote]))
         tagstack = []
-        dumpedfootnotes.update(todumpfootnotes)
+        donefootnotes.update(todumpfootnotes)
         todumpfootnotes = set()
 
     for i, elem in enumerate(page.elements):
@@ -363,7 +367,6 @@ def eatStructuredPage(root, page):
             f"Unknown type of element: {elem.__class__.__name__}")
 
     dumpfootnotes()
-    return dumpedfootnotes
 
 def eatAbstract(root, abstract):
     '''eatAbstract(root, abstract): Eat an Abstract.
