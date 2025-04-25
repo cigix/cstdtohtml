@@ -148,8 +148,13 @@ class LineParser:
                 return
             if line[:7].isspace():
                 # code block
-                # we already checked for _inelement
-                self.elements.append(elements.Code(line))
+                # If the previous element is also Code, then this is the same
+                # element with an empty line which made _inelement == False
+                if isinstance(previous, elements.Code):
+                    previous.lines.append("")
+                    previous.lines.append(line)
+                else:
+                    self.elements.append(elements.Code(line))
                 self._inelement = True
                 return
             # idk, make it a paragraph

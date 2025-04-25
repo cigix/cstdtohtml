@@ -68,7 +68,7 @@ class Tag:
         Parameters:
             - content: str or Tag, the content to add'''
         if type(content) is str:
-            self.contents += content.splitlines()
+            self.contents += content.strip('\n').split('\n')
         elif isinstance(content, Tag):
             self.contents.append(content)
         else:
@@ -83,7 +83,7 @@ class Tag:
             res += ':'
             for c in self.contents:
                 r = repr(c)
-                for line in r.splitlines():
+                for line in r.strip('\n').split('\n'):
                     res += "\n  " + line
         return res
 
@@ -101,7 +101,7 @@ class Tag:
                 string = content.tohtml()
             else:
                 string = content
-            for line in string.splitlines():
+            for line in string.strip('\n').split('\n'):
                 res += "\n  " + line
         if self.tag == "pre":
             res += "</" + self.tag + ">\n"
