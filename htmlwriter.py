@@ -388,14 +388,15 @@ def eatTOC(root, t):
     levels = [(None, main)]
     lastli = None
     for title, key in t.titles:
-        if key is None:
-            if title[:6] == "Annex ":
-                key = title[6]
-                li = Tag("li", f'<a href="#{key}">{title}</a>')
-                lastli = li
-            else:
-                li = Tag("li", f'<a href="#{title}">{title}</a>')
-                lastli = None
+        if title[:6] == "Annex ":
+            key = title[6]
+            li = Tag("li", f'<a href="#{key}">{title}</a>')
+            lastli = li
+            main.add(li)
+            levels[1:] = []
+        elif key is None:
+            li = Tag("li", f'<a href="#{title}">{title}</a>')
+            lastli = None
             main.add(li)
             levels[1:] = []
         else:

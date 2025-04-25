@@ -36,7 +36,10 @@ class TOC:
             try:
                 if m := UNKEYEDCHAPTERRE.fullmatch(line):
                     title, page = m.groups()
-                    self.titles.append((title, None))
+                    if title.startswith("Annex "):
+                        self.titles.append((title, title[6]))
+                    else:
+                        self.titles.append((title, None))
                 elif m := CHAPTERRE.fullmatch(line):
                     key, title, page = m.groups()
                     self.titles.append((title, key))
@@ -59,9 +62,9 @@ class TOCMatcher:
         '''Parameters:
             - toc: TOC, the table of contents'''
         def maketitleregex(title, key):
+            if title[:6] == "Annex ":
+                return re.compile(fr"^\s+{title[:7]}$")
             if key is None:
-                if title[:6] == "Annex ":
-                    return re.compile(fr"^\s+{title[:7]}$")
                 return re.compile(fr"^\s*{title}$")
             if key.count('.') == 0:
                 return re.compile(fr"^\s*{key}\.\s+{title}$")
