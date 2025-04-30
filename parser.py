@@ -159,6 +159,15 @@ class LineParser:
                 return
             # idk, make it a paragraph
 
+        # Fix N3220 6.4.4.2p8: Code block with no indent
+        if "/* Yields a" in line:
+            if isinstance(previous, elements.Code):
+                previous.lines.append(line)
+            else:
+                self.elements.append(elements.Code(line))
+            self._inelement = True
+            return
+
         # regular text
         if (self._inelement
                 and isinstance(previous, elements.Text)
