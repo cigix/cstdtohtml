@@ -11,6 +11,8 @@ import toc
 LEVEL0 = fr"{toc.ANNEXREGEX}|{toc.CHAPTERREGEX}"
 # level 1 regex: likely a reference, but could be a floating point number
 LEVEL1 = fr"(?:{LEVEL0})(?:\.\d+)"
+# level 1a regex: not a floating point number because annexes are letters
+LEVEL1A = fr"(?:{toc.ANNEXREGEX})(?:\.\d+)(?!\d|\.\d+)"
 # level 2 regex: unlikely not a reference
 LEVEL2 = fr"(?:{LEVEL1})(?:\.\d+)+"
 
@@ -19,6 +21,7 @@ LEVEL2 = fr"(?:{LEVEL1})(?:\.\d+)+"
 # What to link:
 # - in "Forward references: " paragraphs: any KEYREGEX
 # - http links
+# - any LEVEL1A
 # - any LEVEL2
 # - "clause CHAPTERREGEX"
 # - "clauses CHAPTEREGEX-CHAPTERREGEX"
@@ -49,6 +52,7 @@ def putlinksplaceholders(elems):
     # matches.
     http = re.compile("https?://[-a-zA-Z0-9_/.]+[a-zA-Z0-9_/]")
     key = re.compile(toc.KEYREGEX)
+    level1a = re.compile(LEVEL1A)
     level2 = re.compile(LEVEL2)
     clause = re.compile(fr"(clause\s)({toc.CHAPTERREGEX})")
     clauses = re.compile(
@@ -60,6 +64,7 @@ def putlinksplaceholders(elems):
     subclause = re.compile(fr"([Ss]ubclause\s)({LEVEL1})")
     def dosubstitutions(string):
         string = http.sub(placeholder0, string)
+        string = level1a.sub(placeholder0, string)
         string = level2.sub(placeholder0, string)
         string = clause.sub(placeholder2, string)
         string = clauses.sub(placeholder4, string)
