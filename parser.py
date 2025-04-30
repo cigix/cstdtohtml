@@ -18,6 +18,12 @@ AFTERSYNTAX = (
 NOTINSYNTAX=0
 STARTSYNTAX=1
 STARTEDSYNTAX=2
+# First word of first lines of Table F.2 in N3220 F.3p1
+N3220_F3P1STARTS = (
+    "setPayload",
+    "convertFromHexCharacter",
+    "restoreModes"
+)
 
 class LineParser:
     '''An aggregator of lines that turns them into elements.
@@ -34,11 +40,18 @@ class LineParser:
         self._indent = indent
         # Are we in a "Syntax" section?
         self._insyntax = NOTINSYNTAX
+        # Fix N3220 F.3p1: Long table with references
+        self._inN3220_F3p1 = False
 
     def _parselinewithoutindent(self, line, tocmatcher):
         splits = line.split(maxsplit=1)
         groups = utils.groupwords(line)
         previous = self.elements[-1] if self.elements else None
+        # Fix N3220 F.3p1: Long table with references
+        if ("Table F.2: Operation binding" in line
+            or splits[0] in N3220_F3P1STARTS):
+            self._inN3220_F3p1 = True
+
         if line.lstrip()[:20] == "Forward references: ":
             # make it its own paragraph
             self.elements.append(elements.Paragraph(line))
@@ -59,7 +72,7 @@ class LineParser:
                 self.elements.append(elements.TitleHeading(line))
             self._inelement = False
             return
-        if tocmatcher.matchheading(line):
+        if tocmatcher.matchheading(line) and not self._inN3220_F3p1:
             if len(splits) == 2:
                 # numbered title
                 self.elements.append(elements.NumberedTitleHeading(line))
@@ -160,7 +173,9 @@ class LineParser:
             # idk, make it a paragraph
 
         # Fix N3220 6.4.4.2p8: Code block with no indent
-        if "/* Yields a" in line:
+        # Fix N3220 F.3p1: Long table with references
+        if ("/* Yields a" in line
+            or self._inN3220_F3p1):
             if isinstance(previous, elements.Code):
                 previous.lines.append(line)
             else:
@@ -208,6 +223,7 @@ class LineParser:
             else:
                 # NumberedParagraph
                 self._insyntax = NOTINSYNTAX
+                self._inN3220_F3p1 = False
                 splits = unindented.split(maxsplit=2)
                 firstword = splits[0] if splits else ""
                 secondisint = 2 <= len(splits) and utils.isint(splits[1])
