@@ -58,18 +58,25 @@ def putlinksplaceholders(elems):
     roundbrackets = re.compile(fr"(\s\()({LEVEL1})(\))")
     seebyin = re.compile(fr"((?:see|by|in)\s)({LEVEL1})")
     subclause = re.compile(fr"([Ss]ubclause\s)({LEVEL1})")
+    def dosubstitutions(string):
+        string = http.sub(placeholder0, string)
+        string = level2.sub(placeholder0, string)
+        string = clause.sub(placeholder2, string)
+        string = clauses.sub(placeholder4, string)
+        string = annex.sub(placeholder2, string)
+        string = squarebrackets.sub(placeholder3, string)
+        string = roundbrackets.sub(placeholder3, string)
+        string = seebyin.sub(placeholder2, string)
+        string = subclause.sub(placeholder2, string)
+        return string
+
     for element in elems:
+        if isinstance(element, elements.Code):
+            for i in range(len(element.lines)):
+                element.lines[i] = dosubstitutions(element.lines[i])
         if not isinstance(element, elements.Text):
             continue
         if element.content[:20] == "Forward references: ":
             element.content = key.sub(placeholder0, element.content)
             continue
-        element.content = http.sub(placeholder0, element.content)
-        element.content = level2.sub(placeholder0, element.content)
-        element.content = clause.sub(placeholder2, element.content)
-        element.content = clauses.sub(placeholder4, element.content)
-        element.content = annex.sub(placeholder2, element.content)
-        element.content = squarebrackets.sub(placeholder3, element.content)
-        element.content = roundbrackets.sub(placeholder3, element.content)
-        element.content = seebyin.sub(placeholder2, element.content)
-        element.content = subclause.sub(placeholder2, element.content)
+        element.content = dosubstitutions(element.content)
