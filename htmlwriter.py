@@ -241,10 +241,11 @@ def eatStructuredPage(root, page, donefootnotes):
         if type(elem) is elements.UnorderedListItem:
             depthli = elem.level * 2 - 1
             depthul = depthli - 1
-            # 3 cases:
+            # 4 cases:
             #   - unordered list already exists at this level, add to it
             #   - unordered list exists at the previous level, create nested
             #     list
+            #   - definition exists at the previous level, create nested list
             #   - create unordered list at root level
             if len(tagstack) > depthul and tagstack[depthul].tag == "ul":
                 # unordered list already exists at this level, add to it
@@ -265,6 +266,18 @@ def eatStructuredPage(root, page, donefootnotes):
                 # pop everything at depthul and above, push ul, push li
                 tagstack[depthul:] = [ul, li]
                 continue
+            if (depthul - 2 >= 0
+                    and len(tagstack) > depthul - 1
+                    and tagstack[depthul - 2].tag == "dl"
+                    and tagstack[depthul - 1].tag == "dd"):
+                # unordered list exists at the previous level, create nested
+                # list
+                li = Tag("li", htmlformat(elem.content))
+                ul = Tag("ul", li)
+                tagstack[depthul - 1].add(ul)
+                # pop everything at depthul and above, push ul, push li
+                tagstack[depthul:] = [ul, li]
+                continue
             if depthul == 0:
                 # create unordered list at root level
                 li = Tag("li", htmlformat(elem.content))
@@ -272,6 +285,7 @@ def eatStructuredPage(root, page, donefootnotes):
                 tagstack = [ul, li]
                 root.add(ul)
                 continue
+
             print("Invalid UnorderedListItem depth:", elem.level,
                   file=sys.stderr)
             print(elem, file=sys.stderr)
@@ -360,7 +374,7 @@ def eatStructuredPage(root, page, donefootnotes):
                 continue
             dl = Tag("dl", dt)
             dl.add(dd)
-            tagstack = [dl]
+            tagstack = [dl, dd]
             root.add(dl)
             continue
 

@@ -87,7 +87,8 @@ class LineParser:
             self._inelement = True
             return
         #print(splits)
-        if splits[0][:-1].isdigit() and splits[0][-1] == '.':
+        if (splits[0][:-1].isdigit() and splits[0][-1] == '.'
+            and 1 < len(splits)):
             # ordered list
             self.elements.append(elements.OrderedListItem(line))
             self._inelement = True
