@@ -171,6 +171,11 @@ class LineParser:
                     self.elements.append(elements.Code(line))
                 self._inelement = True
                 return
+            # Fix N3220 6.8.7.3p2: Code block construct with only 6 indent
+            if line[:6].isspace() and splits[0] == "while":
+                self.elements.append(elements.Code(line))
+                self._inelement = True
+                return
             # idk, make it a paragraph
 
         # Fix N3220 6.4.4.2p8: Code block with no indent
