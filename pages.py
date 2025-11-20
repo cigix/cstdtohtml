@@ -118,7 +118,7 @@ class StructuredPage:
             - tocmatcher: toc.TOCMatcher, the TOCMatcher object
             - startline: int, optional (default: 0), amount of lines to skip
               from the beginning of page'''
-        footnoteregex = re.compile(r"^\s+\d+\)\s?\S")
+        footnoteregex = re.compile(r"^\s+\d+\)\s?\S.")
         lineparser = parser.LineParser(page.indent)
         i = startline
         while i < len(page.content):
