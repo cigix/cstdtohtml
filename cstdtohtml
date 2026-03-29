@@ -6,6 +6,7 @@ import sys
 
 import htmlwriter
 import linker
+import markdownwriter
 import pages
 import utils
 from toc import TOC, TOCMatcher
@@ -27,17 +28,16 @@ def pdftotext(file):
         sys.exit(process.returncode)
     return process.stdout
 
-def texttohtml(text):
-    '''texttohtml(text): Turn the PDF text into HTML.
-
-    Parse the text into pages, then elements, then turn them into HTML tags.
+def texttopages(text):
+    '''texttopages(text): Split the text into groups of Pages.
 
     Parameters:
-        - text: str, the text of the PDF
+        - text: str, the output of `pdftotext`
 
-    Return: str, a HTML document'''
+    Return: dict of str to list of Pages. The keys of the dict are "cover",
+    "toc", "foreword", "intro", "contents", and "biblio".
+    '''
     unstructuredpages = [pages.Page(p) for p in text.split('\f') if p]
-    isostd = unstructuredpages[0].header[0].split('—')[0]
 
     coverbegin = 0
     # The cover and the first page of content have a common subheader
@@ -62,73 +62,111 @@ def texttohtml(text):
         bibliobegin += 1
     indexbegin = bibliobegin + 1
 
-    coverupages = unstructuredpages[coverbegin:tocbegin]
-    tocupages = unstructuredpages[tocbegin:forewordbegin]
-    forewordupages = unstructuredpages[forewordbegin:introbegin]
-    introupages = unstructuredpages[introbegin:contentsbegin]
-    contentsupages = unstructuredpages[contentsbegin:bibliobegin]
-    biblioupages = unstructuredpages[bibliobegin:indexbegin]
+    pagegroups = dict()
+    pagegroups["cover"] = unstructuredpages[coverbegin:tocbegin]
+    pagegroups["toc"] = unstructuredpages[tocbegin:forewordbegin]
+    pagegroups["foreword"] = unstructuredpages[forewordbegin:introbegin]
+    pagegroups["intro"] = unstructuredpages[introbegin:contentsbegin]
+    pagegroups["contents"] = unstructuredpages[contentsbegin:bibliobegin]
+    pagegroups["biblio"] = unstructuredpages[bibliobegin:indexbegin]
+    return pagegroups
 
-    toc = TOC(tocupages)
+def pagestostructures(pagegroups, withcover, withfootnotes, tocgroup):
+    '''pagestostructures(pagegroups, withcover, withfootnotes, tocgroup): Parse
+    the Pages into StructuredPages and TOC.
+
+    Parameters:
+        - pagegroups: dict of str to list of Pages, the groups of pages.
+        - withcover: container of str, the groups that start with a cover page.
+        - withfootnotes: container of str, the groups that contain footnotes.
+        - tocgroup: str, the name of the group that contains the Table of
+          Contents.
+
+    Return: dict of str to (StructuredPage or TOC), the TOC and the
+    StructuredPages, with the same keys as `pagegroups.
+
+    For groups in `withcover`, the page will be a CoverPage.
+    '''
+    toc = TOC(pagegroups[tocgroup])
     # remove Index
     toc.titles.pop()
     tocmatcher = TOCMatcher(toc)
 
-    # Structured pages
-    cover = [pages.CoverPage(coverupages[0], tocmatcher)]
-    cover += [pages.StructuredPage(p, tocmatcher) for p in coverupages[1:]]
-    foreword = [pages.StructuredPage(p, tocmatcher) for p in forewordupages]
-    intro = [pages.StructuredPage(p, tocmatcher) for p in introupages]
-    contents = [pages.CoverPage(contentsupages[0], tocmatcher)]
-    contents += [pages.StructuredPage(p, tocmatcher)
-                 for p in contentsupages[1:]]
-    biblio = [pages.StructuredPage(p, tocmatcher) for p in biblioupages]
+    structuredgroups = dict()
+    for group, unstructuredpages in pagegroups.items():
+        if group == tocgroup:
+            continue
+        if group in withcover:
+            structuredpages = [
+                    pages.CoverPage(unstructuredpages[0], tocmatcher)
+                ]
+            structuredpages += [
+                    pages.StructuredPage(p, tocmatcher)
+                    for p in unstructuredpages[1:]
+                ]
+        else:
+            structuredpages = [
+                    pages.StructuredPage(p, tocmatcher)
+                    for p in unstructuredpages
+                ]
 
-    for i, p in enumerate(contents):
-        # Fix N3220footnote1997: it is not a footnote, just unfortunate number +
-        # parens combo
-        if 1997 in p.footnotes.keys():
-            p.elements[-1].addcontent("1997)" + p.footnotes[1997][0].content)
-            p.elements.extend(p.footnotes[1997][1:])
-            del p.footnotes[1997]
-        p.reindentcodes()
-        p.reworkfootnotes()
-        p.fixfootnoterefs()
-        p.putfootnoteplaceholders()
-        # Fix N3220footnote70: it is on the next page
-        if 69 in p.footnotes.keys():
-            p._putfootnoteplaceholder(70)
+        if group in withfootnotes:
+            for i, p in enumerate(structuredpages):
+                # Fix N3220footnote1997: it is not a footnote, just unfortunate
+                # number + parens combo
+                if 1997 in p.footnotes.keys():
+                    p.elements[-1].addcontent("1997)"
+                                              + p.footnotes[1997][0].content)
+                    p.elements.extend(p.footnotes[1997][1:])
+                    del p.footnotes[1997]
+                p.reindentcodes()
+                p.reworkfootnotes()
+                p.fixfootnoterefs()
+                p.putfootnoteplaceholders()
+                # Fix N3220footnote70: it is on the next page
+                if 69 in p.footnotes.keys():
+                    p._putfootnoteplaceholder(70)
 
-    covermerged = pages.mergepages(cover)
-    forewordmerged = pages.mergepages(foreword)
-    intromerged = pages.mergepages(intro)
-    content = pages.mergepages(contents)
-    bibliomerged = pages.mergepages(biblio)
+        mergedpage = pages.mergepages(structuredpages)
 
-    linker.putlinksplaceholders(covermerged.elements)
-    linker.putlinksplaceholders(forewordmerged.elements)
-    linker.putlinksplaceholders(intromerged.elements)
-    linker.putlinksplaceholders(content.elements)
-    for elems in content.footnotes.values():
-        linker.putlinksplaceholders(elems)
-    linker.putlinksplaceholders(bibliomerged.elements)
+        linker.putlinksplaceholders(mergedpage.elements)
+        if group in withfootnotes:
+            for elems in mergedpage.footnotes.values():
+                linker.putlinksplaceholders(elems)
 
-    # HTML
-    header = htmlwriter.Tag("header", [htmlwriter.Tag("div", h)
-                                       for h in front_header])
-    body = htmlwriter.Tag("body", header)
+        structuredgroups[group] = mergedpage
 
+    structuredgroups[tocgroup] = toc
+    return structuredgroups
+
+def structuredtohtml(structuredgroups, todump, title, header):
+    '''structuredtohtml(structuredgroups, todump, title, header): Turn the
+    StructuredPages to HTML.
+
+    Parameters:
+        - structuredgroups: dict of str to (StructuredPage or TOC), the
+          StructuredPages.
+        - todump: iterable of str, the sequence of groups to turn to HTML.
+        - title: str, the title of the HTML document.
+        - header: iterable of str, the header of the document.
+
+    Return: str, a HTML document.
+    '''
+    headertag = htmlwriter.Tag("header", [htmlwriter.Tag("div", h)
+                                       for h in header])
+    body = htmlwriter.Tag("body", headertag)
+
+    allfootnotes = dict()
     donefootnotes = set()
-    htmlwriter.eatStructuredPage(body, covermerged, donefootnotes)
-    htmlwriter.eatTOC(body, toc)
-    htmlwriter.eatStructuredPage(body, forewordmerged, donefootnotes)
-    htmlwriter.eatStructuredPage(body, intromerged, donefootnotes)
-    htmlwriter.eatStructuredPage(body, content, donefootnotes)
-    htmlwriter.eatStructuredPage(body, bibliomerged, donefootnotes)
+    for group in todump:
+        if isinstance(structuredgroups[group], TOC):
+            htmlwriter.eatTOC(body, structuredgroups[group])
+        else:
+            allfootnotes.update(structuredgroups[group].footnotes)
+            htmlwriter.eatStructuredPage(body, structuredgroups[group],
+                                         donefootnotes)
 
-    allfootnotes = set(content.footnotes.keys())
-    todofootnotes = allfootnotes - donefootnotes
-
+    todofootnotes = allfootnotes.keys() - donefootnotes
     if todofootnotes:
         body.add(htmlwriter.Tag("hr /"))
         body.add(htmlwriter.Tag("i", "Footnotes should be at the end of the"
@@ -136,7 +174,7 @@ def texttohtml(text):
 
         htmlwriter.eatfootnotes(body, {
                 footnote: elems
-                for footnote, elems in content.footnotes.items()
+                for footnote, elems in allfootnotes.items()
                 if footnote in todofootnotes
             })
 
@@ -145,12 +183,53 @@ def texttohtml(text):
 <!-- This document was generated automatically by cstdtohtml -->
 <head>
   <meta charset="utf-8">
-  <title>{isostd}</title>
+  <title>{title}</title>
 </head>
 {body.tohtml()}</html>
 """
-
     return html
+
+def structuredtomd(structuredgroups, todump, title):
+    '''structuredtomd(structuredgroups, todump, title): Turn the StructuredPages
+    to Markdown.
+
+    Parameters:
+        - structuredgroups: dict of str to (StructuredPage or TOC), the
+          StructuredPages.
+        - todump: iterable of str, the sequence of groups to turn to Markdown.
+        - title: str, the title of the document.
+
+    Return: str, a Markdown document.
+    '''
+    header = f'''---
+title: '{title}'
+...
+'''
+    groups = [header]
+    allfootnotes = dict()
+    donefootnotes = set()
+    for g in todump:
+        group = structuredgroups[g]
+        if isinstance(group, TOC):
+            groups.append(markdownwriter.eatTOC(group))
+        else:
+            allfootnotes.update(group.footnotes)
+            groups.append(markdownwriter.eatStructuredPage(group,
+                                                           donefootnotes))
+
+    todofootnotes = allfootnotes.keys() - donefootnotes
+    if todofootnotes:
+        groups.append("-----")
+        groups.append("_Footnotes should be at the end of the sections they"
+                      " appear in, but it seems we\n"
+                      " did not find those:_")
+        groups.append(markdownwriter.eatfootnotes({
+                footnote: elems
+                for footnote, elems in allfootnotes.items()
+                if footnote in todofootnotes
+            }))
+
+    return '\n'.join(groups)
 
 def main(argv):
     usagestr = ("Usage: " + os.path.basename(argv[0]) +
@@ -171,9 +250,20 @@ def main(argv):
     # for debugging purposes
     #with open(".cstdtohtml_raw", 'w') as f:
     #    f.write(text)
-    html = texttohtml(text)
+
+    pagegroups = texttopages(text)
+    isostd = pagegroups["cover"][0].header[0].split('—')[0]
+    header = utils.groupwords(pagegroups["cover"][0].content[0])
+    structuredgroups = pagestostructures(pagegroups, ("cover", "contents"),
+                                         ("contents",), "toc")
+
+    todump = ("cover", "toc", "foreword", "intro", "contents", "biblio")
+    html = structuredtohtml(structuredgroups, todump, isostd, header)
+    markdown = structuredtomd(structuredgroups, todump, isostd)
     with open(outputfile, "wt") as out:
         out.write(html)
+    with open("test.md", "wt") as out:
+        out.write(markdown)
     return 0
 
 if __name__ == '__main__':
