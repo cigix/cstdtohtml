@@ -1,21 +1,41 @@
+SOURCES = cstdtohtml $(wildcard *.py)
+
 all: c23.html
 
-%.html: %.pdf cstdtohtml $(wildcard *.py)
+%.html: %.pdf $(SOURCES)
 	./cstdtohtml $< $@
 
-got.html: c23.pdf cstdtohtml $(wildcard *.py)
-	./cstdtohtml $< got.html || true
-
-check: got.html ref
-	@head -n $$(wc -l ref | cut -d' ' -f1) got.html > got_trunc
-	@diff --color=always -suw ref got_trunc |& less -FSR || true
-	@rm got_trunc
-
-new_ref: got.html
-	cp got.html ref
+%.md: %.pdf $(SOURCES)
+	./cstdtohtml --md $< $@
 
 clean:
-	$(RM) c23.html got.html ref
-	$(RM) -r __pycache__
+	$(RM) -r __pycache__ .cstdtohtml_raw
 
-.PHONY: all check new_ref clean
+########## Regression test suite
+
+tests/out/%.html tests/out/%.md: tests/in/%.pdf $(SOURCES)
+	./cstdtohtml --html --md $< tests/out/$*.html tests/out/$*.md >/dev/null
+
+IN = $(wildcard tests/in/*.pdf)
+OUT_FROM_IN =  $(IN:tests/in/%.pdf=tests/out/%.html)
+OUT_FROM_IN += $(IN:tests/in/%.pdf=tests/out/%.md)
+
+check: $(OUT_FROM_IN)
+	@for out in $^; do \
+	  base="$$(basename $$out)" \
+	  ref="tests/ref/$$base"; \
+	  if cmp "$$ref" "$$out" >/dev/null; then \
+	    echo -e "[\e[92mOK\e[0m] $$base"; \
+	  else \
+	    echo -e "[\e[91mKO\e[0m] $$base"; \
+	    diff --color=always -suw "$$ref" "$$out" |& less -FSR; \
+	  fi \
+	done
+
+ref: $(OUT_FROM_IN)
+	$(RM) -r tests/ref/*
+	cp tests/out/* tests/ref/
+
+##########
+
+.PHONY: all clean check ref
