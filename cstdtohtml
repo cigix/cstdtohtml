@@ -232,21 +232,91 @@ title: '{title}'
     return '\n'.join(groups)
 
 def main(argv):
-    usagestr = ("Usage: " + os.path.basename(argv[0]) +
-                " <C Standard Draft PDF file> [output HTML file]")
-    if not 1 < len(argv) < 4:
-        print(usagestr, file=sys.stderr)
-        return 1
-    if argv[1] in ["-h", "-help", "--help"]:
-        print(usagestr)
-        return 0
-    inputfile = argv[1]
-    if len(argv) == 3:
-        outputfile = argv[2]
-    else:
-        outputfile = os.path.splitext(inputfile)[0] + ".html"
+    progname = os.path.basename(argv[0])
+    helpstr = f'''Usage:
+    {progname} [--html|--md] <C Standard Draft PDF file> [output file]
+    {progname} --html --md <C Standard Draft PDF file> [<HTML output file> <Markdown output file>]
 
-    text = pdftotext(inputfile)
+Convert a C Standard Draft PDF into HTML or Markdown.
+
+Options:
+    -h, -help, --help  Show this help.
+    --html             Produce HTML output. This is the default if no output
+                       format is selected.
+    --md, --markdown   Produce Markdown (pandoc flavoured) output.
+
+Output scheme: There are 4 ways to call {progname}:
+    - 0 or 1 format selector, no output file:
+        The name of the output file is constructed from the input file and the
+        format.
+    - 0 or 1 format selector, named output file:
+        The named output file is used.
+    - 2 format selectors, no output file:
+        The names of the two output files are constructed from the input for
+        each format.
+    - 2 format selectors, 2 named output files:
+        The first named output file is used for HTML format, the second for
+        Markdown, regardless of the order of the format flags.
+'''
+
+    html_flag = False
+    md_flag = False
+    files = list()
+    for arg in argv[1:]:
+        if arg in ("-h", "-help", "--help"):
+            print(helpstr)
+            return 0
+        if arg in ("--html",):
+            html_flag = True
+        elif arg in ("--md", "--markdown"):
+            md_flag = True
+        else:
+            files.append(arg)
+
+    html_out = None
+    md_out = None
+    if len(files) == 0:
+        print("Expected at least 1 file name, the C Standard Draft PDF.",
+              file=sys.stderr)
+        print(f"See `{progname} --help`.", file=sys.stderr)
+        return 1
+    pdf_in = files[0]
+    if not html_flag and not md_flag:
+        html_flag = True
+    if html_flag and not md_flag:
+        if len(files) == 1:
+            html_out = os.path.splitext(pdf_in)[0] + ".html"
+        elif len(files) == 2:
+            html_out = files[1]
+        else:
+            print(f"Expected 1 or 2 file names, got {len(files)}.",
+                  file=sys.stderr)
+            print(f"See `{progname} --help`.", file=sys.stderr)
+            return 1
+    elif md_flag and not html_flag:
+        if len(files) == 1:
+            md_out = os.path.splitext(pdf_in)[0] + ".md"
+        elif len(files) == 2:
+            md_out = files[1]
+        else:
+            print(f"Expected 1 or 2 file names, got {len(files)}.",
+                  file=sys.stderr)
+            print(f"See `{progname} --help`.", file=sys.stderr)
+            return 1
+    else: # html_flag and md_flag
+        if len(files) == 1:
+            html_out = os.path.splitext(pdf_in)[0] + ".html"
+            md_out = os.path.splitext(pdf_in)[0] + ".md"
+        elif len(files) == 3:
+            html_out = files[1]
+            md_out = files[2]
+        else:
+            print(f"Expected 1 or 3 file names, got {len(files)}.",
+                  file=sys.stderr)
+            print(f"See `{progname} --help`.", file=sys.stderr)
+            return 1
+
+    text = pdftotext(pdf_in)
     # for debugging purposes
     #with open(".cstdtohtml_raw", 'w') as f:
     #    f.write(text)
@@ -258,12 +328,16 @@ def main(argv):
                                          ("contents",), "toc")
 
     todump = ("cover", "toc", "foreword", "intro", "contents", "biblio")
-    html = structuredtohtml(structuredgroups, todump, isostd, header)
-    markdown = structuredtomd(structuredgroups, todump, isostd)
-    with open(outputfile, "wt") as out:
-        out.write(html)
-    with open("test.md", "wt") as out:
-        out.write(markdown)
+    if html_out:
+        html = structuredtohtml(structuredgroups, todump, isostd, header)
+        with open(html_out, "wt") as out:
+            out.write(html)
+        print(f"Successfully wrote HTML document to {html_out}.")
+    if md_out:
+        md = structuredtomd(structuredgroups, todump, isostd)
+        with open(md_out, "wt") as out:
+            out.write(md)
+        print(f"Successfully wrote Markdown document to {md_out}.")
     return 0
 
 if __name__ == '__main__':
